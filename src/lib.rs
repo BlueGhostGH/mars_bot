@@ -205,3 +205,87 @@ impl TryFrom<&str> for GameInput
 
 #[derive(Debug)]
 enum Error {}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Direction
+{
+    Right,
+    Up,
+    Left,
+    Down,
+}
+
+#[derive(Debug)]
+enum Moves
+{
+    One
+    {
+        first: Direction
+    },
+    Two
+    {
+        first: Direction, second: Direction
+    },
+    Three
+    {
+        first: Direction,
+        second: Direction,
+        three: Direction,
+    },
+}
+
+#[derive(Debug)]
+enum Action
+{
+    Attack
+    {
+        direction: Direction
+    },
+    Scan
+    {
+        direction: Direction
+    },
+    Mine
+    {
+        direction: Direction
+    },
+    Place
+    {
+        direction: Direction
+    },
+}
+
+#[derive(Debug)]
+enum Upgrade
+{
+    Sight,
+    Attack,
+    Drill,
+    Movement,
+
+    Radar,
+    Battery,
+
+    Heal,
+}
+
+#[derive(Debug)]
+pub struct GameOutput
+{
+    moves: Option<Moves>,
+    action: Option<Action>,
+    upgrade: Option<Upgrade>,
+}
+
+impl Into<String> for GameOutput
+{
+    fn into(self) -> String
+    {
+        String::new()
+    }
+}
+
+pub fn magic(input: GameInput) -> GameOutput
+{
+    unimplemented!()
+}
