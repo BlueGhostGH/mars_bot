@@ -123,8 +123,109 @@ impl Map {
             .copied()
     }
 
-    pub fn move_towards(&self, position: ShittyPosition) -> (Option<Moves>, ShittyPosition) {
-        todo!()
+    pub fn move_towards(
+        &self,
+        from: ShittyPosition,
+        to: ShittyPosition,
+        wheel_level: u8,
+    ) -> (Option<Moves>, ShittyPosition) {
+        let root = from;
+        let goal = to;
+        let mut found = false;
+
+        let mut explored = HashSet::new();
+        let mut parents = HashMap::new();
+
+        let mut queue = VecDeque::new();
+        explored.insert(from);
+        queue.push_back(from);
+        while !queue.is_empty() {
+            let v = queue.pop_front().unwrap();
+            if v == goal {
+                found = true;
+                break;
+            }
+            for w in self.find_neighbour(v, Tile::Air) {
+                if explored.get(&w.1) == None {
+                    explored.insert(w.1);
+                    parents.insert(w.1, (v, w.0));
+                    queue.push_back(w.1);
+                }
+            }
+        }
+
+        if found {
+            let mut curr = goal;
+            let mut dist = 0;
+
+            let mut moves = [None; 3];
+
+            while curr != root {
+                moves.rotate_right(1);
+                let (curr, dir) = *parents.get(&curr).unwrap();
+                moves[0] = Some(dir);
+            }
+
+            if moves == [None; 3] {
+                return (None, from);
+            }
+
+            fn direction_to_position(direction: Direction) -> ShittyPosition {
+                match direction {
+                    Direction::Right => ShittyPosition { x: 1, y: 0 },
+                    Direction::Up => ShittyPosition { x: 0, y: 0 + 1 },
+                    Direction::Left => ShittyPosition { x: 0 - 1, y: 0 },
+                    Direction::Down => ShittyPosition { x: 0, y: 0 - 1 },
+                }
+            }
+
+            match wheel_level {
+                1 => (
+                    Some(Moves::One {
+                        first: moves[0].unwrap(),
+                    }),
+                    ShittyPosition {
+                        x: from.x + direction_to_position(moves[0].unwrap()).x,
+                        y: from.y + direction_to_position(moves[0].unwrap()).y,
+                    },
+                ),
+                2 => (
+                    Some(Moves::Two {
+                        first: moves[0].unwrap(),
+                        second: moves[1].unwrap(),
+                    }),
+                    ShittyPosition {
+                        x: from.x
+                            + direction_to_position(moves[0].unwrap()).x
+                            + direction_to_position(moves[1].unwrap()).x,
+                        y: from.y
+                            + direction_to_position(moves[0].unwrap()).y
+                            + direction_to_position(moves[1].unwrap()).y,
+                    },
+                ),
+                3 => (
+                    Some(Moves::Three {
+                        first: moves[0].unwrap(),
+                        second: moves[1].unwrap(),
+                        third: moves[2].unwrap(),
+                    }),
+                    ShittyPosition {
+                        x: from.x
+                            + direction_to_position(moves[0].unwrap()).x
+                            + direction_to_position(moves[1].unwrap()).x
+                            + direction_to_position(moves[2].unwrap()).x,
+                        y: from.y
+                            + from.y
+                            + direction_to_position(moves[0].unwrap()).y
+                            + direction_to_position(moves[1].unwrap()).y
+                            + direction_to_position(moves[2].unwrap()).y,
+                    },
+                ),
+                _ => unreachable!(),
+            }
+        } else {
+            (None, from)
+        }
     }
 
     pub fn tile_at(&self, position: ShittyPosition) -> Option<Tile> {

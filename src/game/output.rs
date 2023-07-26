@@ -2,7 +2,7 @@ use std::unreachable;
 
 use super::input::{PlayerInventory, PlayerStats, UpgradeCost};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Direction {
     Right,
     Up,
