@@ -1,7 +1,7 @@
 use std::todo;
 
 use crate::game::{
-    input::{Dimensions, GameInput, Map, PlayerInventory, PlayerPosition, PlayerStats, Tile},
+    input::{Dimensions, GameInput, Map, PlayerInventory, ShittyPosition, PlayerStats, Tile},
     output::{Action, Direction, GameOutput, Moves, Upgrade},
 };
 
@@ -11,7 +11,7 @@ pub struct GameState {
     pub map: Map,
     pub player_stats: PlayerStats,
     pub player_inventory: PlayerInventory,
-    pub player_position: PlayerPosition,
+    pub player_position: ShittyPosition,
 }
 
 impl GameState {
@@ -31,14 +31,14 @@ impl GameState {
         }
     }
 
-    fn moves(&self) -> (Option<Moves>, (usize, usize)) {
+    fn moves(&self) -> (Option<Moves>, ShittyPosition) {
         if self
             .player_inventory
             .can_afford(self.target_upgrade().cost(self.player_stats))
         {
             let base = self.map.closest_tile(Tile::Base).unwrap();
 
-            if !self.player_stats.has_battery && base != self.player_position.as_vec() {
+            if !self.player_stats.has_battery && base != self.player_position {
                 return self.map.move_towards(base);
             }
         }

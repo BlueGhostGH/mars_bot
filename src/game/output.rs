@@ -1,7 +1,7 @@
 use super::input::{PlayerInventory, PlayerStats};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum Direction {
+pub enum Direction {
     Right,
     Up,
     Left,
@@ -36,7 +36,7 @@ pub enum Moves {
 }
 
 #[derive(Debug)]
-pub(crate) enum Action {
+pub enum Action {
     Attack { direction: Direction },
     Scan { direction: Direction },
     Mine { direction: Direction },
@@ -44,7 +44,7 @@ pub(crate) enum Action {
 }
 
 #[derive(Debug)]
-pub(crate) enum Upgrade {
+pub enum Upgrade {
     Sight,
     Attack,
     Drill,

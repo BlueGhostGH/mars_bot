@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 
-use super::output::GameOutput;
+use super::output::{Direction, GameOutput, Moves};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Dimensions {
@@ -53,7 +53,7 @@ impl Map {
         }
     }
 
-    pub fn distance_from_to(&self, from: PlayerPosition, to: PlayerPosition) -> Option<usize> {
+    pub fn distance_from_to(&self, from: ShittyPosition, to: ShittyPosition) -> Option<usize> {
         let root = from;
         let goal = to;
         let mut found = false;
@@ -71,13 +71,13 @@ impl Map {
                 break;
             }
             for w in [
-                PlayerPosition { x: v.x + 1, y: v.y },
-                PlayerPosition { x: v.x, y: v.y + 1 },
-                PlayerPosition { x: v.x - 1, y: v.y },
-                PlayerPosition { x: v.x, y: v.y - 1 },
+                ShittyPosition { x: v.x + 1, y: v.y },
+                ShittyPosition { x: v.x, y: v.y + 1 },
+                ShittyPosition { x: v.x - 1, y: v.y },
+                ShittyPosition { x: v.x, y: v.y - 1 },
             ]
             .into_iter()
-            .filter(|&PlayerPosition { x, y }| self.tiles[x as usize][y as usize] == Tile::Air)
+            .filter(|&ShittyPosition { x, y }| self.tiles[x as usize][y as usize] == Tile::Air)
             {
                 if explored.get(&w) == None {
                     explored.insert(w);
@@ -102,7 +102,7 @@ impl Map {
         }
     }
 
-    pub fn find_tiles(&self, target: Tile) -> Vec<PlayerPosition> {
+    pub fn find_tiles(&self, target: Tile) -> Vec<ShittyPosition> {
         self.tiles
             .iter()
             .enumerate()
@@ -112,7 +112,7 @@ impl Map {
                     .enumerate()
                     .filter_map(|(y, tile)| {
                         if *tile == target {
-                            Some(PlayerPosition {
+                            Some(ShittyPosition {
                                 x: x as u8,
                                 y: y as u8,
                             })
@@ -120,43 +120,55 @@ impl Map {
                             None
                         }
                     })
-                    .collect::<Vec<PlayerPosition>>()
+                    .collect::<Vec<ShittyPosition>>()
             })
             .collect()
     }
 
-    pub fn closest_tile(&self, target: Tile) -> Option<PlayerPosition> {
+    pub fn closest_tile(&self, target: Tile) -> Option<ShittyPosition> {
         self.find_tiles(target)
             .iter()
             .min_by_key(|position| self.distance_from_to(todo!(), **position))
             .copied()
     }
 
-    pub fn move_towards(&self, position: PlayerPosition) -> GameOutput {
+    pub fn move_towards(&self, position: ShittyPosition) -> (Option<Moves>, ShittyPosition) {
         todo!()
     }
 
-    pub fn tile_at(&self, position: (usize, usize)) -> Option<Tile> {
+    pub fn tile_at(&self, position: ShittyPosition) -> Option<Tile> {
         self.tiles
-            .get(position.0)
-            .and_then(|array| array.get(position.1))
+            .get(position.x as usize)
+            .and_then(|array| array.get(position.y as usize))
             .map(|b| *b)
     }
 
-    pub fn neighbours(&self, position: (usize, usize)) -> Vec<(Direction, (usize, usize))> {
+    pub fn neighbours(&self, position: ShittyPosition) -> Vec<(Direction, ShittyPosition)> {
         vec![
-            (Direction::Right, (position.0 + 1, position.1)),
-            (Direction::Left, (position.0 - 1, position.1)),
-            (Direction::Down, (position.0, position.1 + 1)),
-            (Direction::Up, (position.0, position.1 - 1)),
+            (
+                Direction::Right,
+                ShittyPosition::new(position.x + 1, position.y),
+            ),
+            (
+                Direction::Left,
+                ShittyPosition::new(position.x - 1, position.y),
+            ),
+            (
+                Direction::Down,
+                ShittyPosition::new(position.x, position.y + 1),
+            ),
+            (
+                Direction::Up,
+                ShittyPosition::new(position.x, position.y - 1),
+            ),
         ]
     }
 
     pub fn find_neighbour(
         &self,
-        position: (usize, usize),
+        position: ShittyPosition,
         target: Tile,
-    ) -> Option<(Direction, (usize, usize))> {
+    ) -> Option<(Direction, ShittyPosition)> {
         self.neighbours(position)
             .iter()
             .filter(|(_, location)| self.tile_at(*location) == Some(target))
@@ -180,18 +192,18 @@ impl Map {
 // 13                  Q.enqueue(w)
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct PlayerPosition {
+pub struct ShittyPosition {
     pub x: u8,
     pub y: u8,
 }
 
-impl PlayerPosition {
-    pub fn as_vec(self) -> (usize, usize) {
-        (self.x as usize, self.y as usize)
+impl ShittyPosition {
+    pub fn new(x: u8, y: u8) -> Self {
+        Self { x, y }
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct PlayerStats {
     pub hit_points: u8,
 
@@ -220,7 +232,7 @@ impl PlayerInventory {
 #[derive(Debug)]
 pub struct GameInput {
     pub map: Map,
-    pub player_position: PlayerPosition,
+    pub player_position: ShittyPosition,
     pub player_stats: PlayerStats,
     pub player_inventory: PlayerInventory,
 }
@@ -285,7 +297,7 @@ impl TryFrom<&str> for GameInput {
         let player_position = {
             let (x, y) = lines.next().unwrap().split_once(' ').unwrap();
 
-            PlayerPosition {
+            ShittyPosition {
                 x: x.parse().unwrap(),
                 y: y.parse().unwrap(),
             }
