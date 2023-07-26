@@ -1,5 +1,4 @@
-fn main()
-{
+fn main() {
     let id = {
         println!("Enter ID:");
         let mut id = String::new();

@@ -1,6 +1,4 @@
-use std::todo;
-
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Dimensions {
     width: u8,
     height: u8,
@@ -27,12 +25,19 @@ pub enum Tile {
 
 #[derive(Debug)]
 pub struct Map {
+    pub dimensions: Dimensions,
     pub tiles: Box<[Box<[Tile]>]>,
 }
 
 impl Map {
-    pub fn merge(&mut self, other: Map) {
-        todo!()
+    pub fn merge_with(&mut self, other: &Map) {
+        for i in 0..self.dimensions.width.into() {
+            for j in 0..self.dimensions.height.into() {
+                if self.tiles[i][j] != other.tiles[i][j] && other.tiles[i][j] != Tile::Unknown {
+                    self.tiles[i][j] = other.tiles[i][j]
+                }
+            }
+        }
     }
 }
 
@@ -64,7 +69,6 @@ pub struct PlayerInventory {
 
 #[derive(Debug)]
 pub struct GameInput {
-    pub dimensions: Dimensions,
     pub map: Map,
     pub player_position: PlayerPosition,
     pub player_stats: PlayerStats,
@@ -86,7 +90,7 @@ impl TryFrom<&str> for GameInput {
             }
         };
 
-        let map = {
+        let tiles = {
             let mut tiles = vec![
                 vec![Tile::Unknown; dimensions.height.into()].into_boxed_slice();
                 dimensions.width.into()
@@ -123,8 +127,10 @@ impl TryFrom<&str> for GameInput {
                 }
             }
 
-            Map { tiles }
+            tiles
         };
+
+        let map = Map { dimensions, tiles };
 
         let player_position = {
             let (x, y) = lines.next().unwrap().split_once(' ').unwrap();
@@ -176,7 +182,6 @@ impl TryFrom<&str> for GameInput {
         };
 
         Ok(GameInput {
-            dimensions,
             map,
             player_position,
             player_stats,

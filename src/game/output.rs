@@ -1,16 +1,13 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum Direction
-{
+pub(crate) enum Direction {
     Right,
     Up,
     Left,
     Down,
 }
 
-impl Into<char> for Direction
-{
-    fn into(self) -> char
-    {
+impl Into<char> for Direction {
+    fn into(self) -> char {
         match self {
             Direction::Right => 'R',
             Direction::Up => 'U',
@@ -21,18 +18,15 @@ impl Into<char> for Direction
 }
 
 #[derive(Debug, Clone, Copy)]
-pub(crate) enum Moves
-{
-    One
-    {
-        first: Direction
+pub(crate) enum Moves {
+    One {
+        first: Direction,
     },
-    Two
-    {
-        first: Direction, second: Direction
+    Two {
+        first: Direction,
+        second: Direction,
     },
-    Three
-    {
+    Three {
         first: Direction,
         second: Direction,
         third: Direction,
@@ -40,29 +34,15 @@ pub(crate) enum Moves
 }
 
 #[derive(Debug)]
-pub(crate) enum Action
-{
-    Attack
-    {
-        direction: Direction
-    },
-    Scan
-    {
-        direction: Direction
-    },
-    Mine
-    {
-        direction: Direction
-    },
-    Place
-    {
-        direction: Direction
-    },
+pub(crate) enum Action {
+    Attack { direction: Direction },
+    Scan { direction: Direction },
+    Mine { direction: Direction },
+    Place { direction: Direction },
 }
 
 #[derive(Debug)]
-pub(crate) enum Upgrade
-{
+pub(crate) enum Upgrade {
     Sight,
     Attack,
     Drill,
@@ -75,17 +55,14 @@ pub(crate) enum Upgrade
 }
 
 #[derive(Debug)]
-pub struct GameOutput
-{
+pub struct GameOutput {
     pub(crate) moves: Option<Moves>,
     pub(crate) action: Option<Action>,
     pub(crate) upgrade: Option<Upgrade>,
 }
 
-impl Into<String> for GameOutput
-{
-    fn into(self) -> String
-    {
+impl Into<String> for GameOutput {
+    fn into(self) -> String {
         let moves = self.moves.map(|moves| {
             match moves {
                 Moves::One { first } => ::std::iter::once(first).collect::<Vec<_>>(),
