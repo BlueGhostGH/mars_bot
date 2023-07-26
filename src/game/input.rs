@@ -1,3 +1,5 @@
+use std::collections::{HashMap, HashSet, VecDeque};
+
 #[derive(Debug, Clone, Copy)]
 pub struct Dimensions {
     width: u8,
@@ -40,12 +42,71 @@ impl Map {
         }
     }
 
-    pub fn distance_to(&self, position: (usize, usize))  -> usize {
-        todo!()
+    pub fn distance_from_to(&self, from: PlayerPosition, to: PlayerPosition) -> Option<usize> {
+        let root = from;
+        let goal = to;
+        let mut found = false;
+
+        let mut explored = HashSet::new();
+        let mut parents = HashMap::new();
+
+        let mut queue = VecDeque::new();
+        explored.insert(from);
+        queue.push_back(from);
+        while !queue.is_empty() {
+            let v = queue.pop_front().unwrap();
+            if v == goal {
+                found = true;
+                break;
+            }
+            for w in [
+                PlayerPosition { x: v.x + 1, y: v.y },
+                PlayerPosition { x: v.x, y: v.y + 1 },
+                PlayerPosition { x: v.x - 1, y: v.y },
+                PlayerPosition { x: v.x, y: v.y - 1 },
+            ]
+            .into_iter()
+            .filter(|&PlayerPosition { x, y }| self.tiles[x as usize][y as usize] == Tile::Air)
+            {
+                if explored.get(&w) == None {
+                    explored.insert(w);
+                    parents.insert(w, v);
+                    queue.push_back(w);
+                }
+            }
+        }
+
+        if found {
+            let mut curr = goal;
+            let mut dist = 0;
+
+            while curr != root {
+                curr = *parents.get(&curr).unwrap();
+                dist += 1;
+            }
+
+            Some(dist)
+        } else {
+            None
+        }
     }
 }
 
-#[derive(Debug)]
+// 1  procedure BFS(G, root) is
+// 2      let Q be a queue
+// 3      label root as explored
+// 4      Q.enqueue(root)
+// 5      while Q is not empty do
+// 6          v := Q.dequeue()
+// 7          if v is the goal then
+// 8              return v
+// 9          for all edges from v to w in G.adjacentEdges(v) do
+// 10              if w is not labeled as explored then
+// 11                  label w as explored
+// 12                  w.parent := v
+// 13                  Q.enqueue(w)
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct PlayerPosition {
     pub x: u8,
     pub y: u8,
