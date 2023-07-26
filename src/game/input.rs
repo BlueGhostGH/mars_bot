@@ -491,3 +491,46 @@ impl TryFrom<&str> for GameInput {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::game::{
+        input::ShittyPosition,
+        output::{Direction, Moves},
+    };
+
+    use super::{Dimensions, Map, Tile};
+
+    #[test]
+    fn move_towards_works() {
+        let map = Map {
+            dimensions: Dimensions {
+                width: 4,
+                height: 4,
+            },
+            tiles: vec![
+                vec![Tile::Player { id: 0 }, Tile::Air, Tile::Air, Tile::Air].into_boxed_slice(),
+                vec![Tile::Air, Tile::Stone, Tile::Air, Tile::Air].into_boxed_slice(),
+                vec![Tile::Air, Tile::Air, Tile::Stone, Tile::Air].into_boxed_slice(),
+                vec![Tile::Air, Tile::Air, Tile::Air, Tile::Iron].into_boxed_slice(),
+            ]
+            .into_boxed_slice(),
+        };
+
+        let (moves, final_position) = map.move_towards(
+            super::ShittyPosition { x: 0, y: 0 },
+            super::ShittyPosition { x: 3, y: 3 },
+            1,
+        );
+
+        assert!(match moves {
+            Some(Moves::One {
+                first: Direction::Right | Direction::Down,
+            }) => matches!(
+                final_position,
+                ShittyPosition { x: 1, y: 0 } | ShittyPosition { x: 0, y: 1 }
+            ),
+            _ => false,
+        })
+    }
+}
