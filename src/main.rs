@@ -1,3 +1,5 @@
+use std::{println, dbg};
+
 use mars_bot::logic::GameState;
 
 fn main() {
@@ -20,14 +22,12 @@ fn main() {
         if let Ok(input) = input {
             let input = mars_bot::game::input::GameInput::try_from(input.as_str()).unwrap();
 
-            match &mut state {
-                None => {
-                    state = Some(GameState::from_input(input));
-                }
-                Some(state) => state.feed_input(input),
-            }
+            let mut new_state = GameState::process_input(state, input);
 
-            let output = state.unwrap().magic();
+            let output = new_state.magic();
+            state = Some(new_state);
+
+            dbg!(output);
 
             ::std::fs::write(
                 format!("{}/c{id}_{round}.txt", ::std::env::args().nth(1).unwrap()),
@@ -40,6 +40,6 @@ fn main() {
             continue;
         }
 
-        ::std::thread::sleep(::std::time::Duration::from_secs(2));
+        ::std::thread::sleep(::std::time::Duration::from_millis(800));
     }
 }

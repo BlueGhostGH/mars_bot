@@ -9,7 +9,7 @@
     noop_method_call,
     rust_2021_incompatible_closure_captures,
     unreachable_pub,
-    unused_results,
+    // unused_results,
     variant_size_differences
 )]
 #![allow(clippy::new_without_default)]

@@ -1,5 +1,9 @@
 use super::output::{Direction, Moves};
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::{
+    collections::{HashMap, HashSet, VecDeque},
+    dbg,
+    ops::{Index, IndexMut},
+};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Dimensions {
@@ -69,7 +73,7 @@ impl Map {
                 found = true;
                 break;
             }
-            for (_, w) in self.find_neighbour(v, Tile::Air) {
+            for (_, w) in self.find_neighbours(v, Tile::Air) {
                 if explored.get(&w) == None {
                     explored.insert(w);
                     parents.insert(w, v);
@@ -104,8 +108,8 @@ impl Map {
                     .filter_map(|(y, tile)| {
                         if *tile == target {
                             Some(ShittyPosition {
-                                x: x as u8,
-                                y: y as u8,
+                                x: x as i8,
+                                y: y as i8,
                             })
                         } else {
                             None
@@ -119,7 +123,7 @@ impl Map {
     pub fn closest_tile(&self, from: ShittyPosition, target: Tile) -> Option<ShittyPosition> {
         self.find_tiles(target)
             .iter()
-            .min_by_key(|position| self.distance_from_to(from, **position))
+            .min_by_key(|position| self.distance_from_to(from, **position).unwrap_or(10000))
             .copied()
     }
 
@@ -145,7 +149,14 @@ impl Map {
                 found = true;
                 break;
             }
-            for w in self.find_neighbour(v, Tile::Air) {
+            for w in self.find_neighbours(v, Tile::Air) {
+                if explored.get(&w.1) == None {
+                    explored.insert(w.1);
+                    parents.insert(w.1, (v, w.0));
+                    queue.push_back(w.1);
+                }
+            }
+            for w in self.find_neighbours(v, Tile::Unknown) {
                 if explored.get(&w.1) == None {
                     explored.insert(w.1);
                     parents.insert(w.1, (v, w.0));
@@ -161,8 +172,10 @@ impl Map {
             let mut moves = [None; 3];
 
             while curr != root {
+                dbg!("bruh");
                 moves.rotate_right(1);
-                let (curr, dir) = *parents.get(&curr).unwrap();
+                let (new_curr, dir) = *parents.get(&curr).unwrap();
+                curr = new_curr;
                 moves[0] = Some(dir);
             }
 
@@ -235,6 +248,10 @@ impl Map {
             .map(|b| *b)
     }
 
+    pub fn set_tile_at(&mut self, position: ShittyPosition, tile: Tile) {
+        self.tiles[position.x as usize][position.y as usize] = tile;
+    }
+
     pub fn neighbours(&self, position: ShittyPosition) -> [(Direction, ShittyPosition); 4] {
         [
             (
@@ -256,16 +273,24 @@ impl Map {
         ]
     }
 
+    pub fn find_neighbours(
+        &self,
+        position: ShittyPosition,
+        target: Tile,
+    ) -> Vec<(Direction, ShittyPosition)> {
+        self.neighbours(position)
+            .iter()
+            .filter(|(_, location)| self.tile_at(*location) == Some(target))
+            .copied()
+            .collect()
+    }
+
     pub fn find_neighbour(
         &self,
         position: ShittyPosition,
         target: Tile,
     ) -> Option<(Direction, ShittyPosition)> {
-        self.neighbours(position)
-            .iter()
-            .filter(|(_, location)| self.tile_at(*location) == Some(target))
-            .copied()
-            .next()
+        self.find_neighbours(position, target).get(0).copied()
     }
 }
 
@@ -285,12 +310,12 @@ impl Map {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ShittyPosition {
-    pub x: u8,
-    pub y: u8,
+    pub x: i8,
+    pub y: i8,
 }
 
 impl ShittyPosition {
-    pub fn new(x: u8, y: u8) -> Self {
+    pub fn new(x: i8, y: i8) -> Self {
         Self { x, y }
     }
 }
