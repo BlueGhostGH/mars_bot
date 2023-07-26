@@ -1,4 +1,4 @@
-#![feature(byte_slice_trim_ascii, never_type)]
+#![feature(byte_slice_trim_ascii, never_type, iter_intersperse)]
 #![deny(unsafe_code)]
 #![warn(
     clippy::all,
@@ -215,7 +215,20 @@ enum Direction
     Down,
 }
 
-#[derive(Debug)]
+impl Into<char> for Direction
+{
+    fn into(self) -> char
+    {
+        match self {
+            Direction::Right => 'R',
+            Direction::Up => 'U',
+            Direction::Left => 'L',
+            Direction::Down => 'D',
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
 enum Moves
 {
     One
@@ -230,7 +243,7 @@ enum Moves
     {
         first: Direction,
         second: Direction,
-        three: Direction,
+        third: Direction,
     },
 }
 
@@ -281,11 +294,72 @@ impl Into<String> for GameOutput
 {
     fn into(self) -> String
     {
-        String::new()
+        let moves = self.moves.map(|moves| {
+            match moves {
+                Moves::One { first } => ::std::iter::once(first).collect::<Vec<_>>(),
+                Moves::Two { first, second } => ::std::iter::once(first)
+                    .chain(::std::iter::once(second))
+                    .collect::<Vec<_>>(),
+                Moves::Three {
+                    first,
+                    second,
+                    third,
+                } => ::std::iter::once(first)
+                    .chain(::std::iter::once(second))
+                    .chain(::std::iter::once(third))
+                    .collect::<Vec<_>>(),
+            }
+            .into_iter()
+            .map(|direction| direction.into())
+            .intersperse(' ')
+            .collect::<String>()
+        });
+
+        let action = self.action.map(|action| {
+            let (action, direction) = match action {
+                Action::Attack { direction } => ('A', direction),
+                Action::Scan { direction } => ('S', direction),
+                Action::Mine { direction } => ('M', direction),
+                Action::Place { direction } => ('P', direction),
+            };
+
+            format!("{action} {}", <Direction as Into<char>>::into(direction))
+        });
+
+        let upgrade = self.upgrade.map(|upgrade| {
+            let upgrade = match upgrade {
+                Upgrade::Sight => 'S',
+                Upgrade::Attack => 'A',
+                Upgrade::Drill => 'D',
+                Upgrade::Movement => 'M',
+
+                Upgrade::Radar => 'R',
+                Upgrade::Battery => 'B',
+
+                Upgrade::Heal => 'H',
+            };
+
+            format!("B {upgrade}")
+        });
+
+        [moves, action, upgrade]
+            .into_iter()
+            .flatten()
+            .intersperse(String::from("\n"))
+            .collect::<String>()
     }
 }
 
 pub fn magic(input: GameInput) -> GameOutput
 {
-    unimplemented!()
+    GameOutput {
+        moves: Some(Moves::Two {
+            first: Direction::Up,
+            second: Direction::Right,
+        }),
+        action: Some(Action::Attack {
+            direction: Direction::Right,
+        }),
+        upgrade: Some(Upgrade::Heal),
+    }
 }
