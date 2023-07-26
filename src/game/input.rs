@@ -1,6 +1,5 @@
+use super::output::{Direction, Moves};
 use std::collections::{HashMap, HashSet, VecDeque};
-
-use super::output::{Direction, GameOutput, Moves};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Dimensions {
@@ -70,15 +69,7 @@ impl Map {
                 found = true;
                 break;
             }
-            for w in [
-                ShittyPosition { x: v.x + 1, y: v.y },
-                ShittyPosition { x: v.x, y: v.y + 1 },
-                ShittyPosition { x: v.x - 1, y: v.y },
-                ShittyPosition { x: v.x, y: v.y - 1 },
-            ]
-            .into_iter()
-            .filter(|&ShittyPosition { x, y }| self.tiles[x as usize][y as usize] == Tile::Air)
-            {
+            for w in self.find_neighbour(v, Tile::Air) {
                 if explored.get(&w) == None {
                     explored.insert(w);
                     parents.insert(w, v);
@@ -125,10 +116,10 @@ impl Map {
             .collect()
     }
 
-    pub fn closest_tile(&self, target: Tile) -> Option<ShittyPosition> {
+    pub fn closest_tile(&self, from: ShittyPosition, target: Tile) -> Option<ShittyPosition> {
         self.find_tiles(target)
             .iter()
-            .min_by_key(|position| self.distance_from_to(todo!(), **position))
+            .min_by_key(|position| self.distance_from_to(from, **position))
             .copied()
     }
 
@@ -143,8 +134,8 @@ impl Map {
             .map(|b| *b)
     }
 
-    pub fn neighbours(&self, position: ShittyPosition) -> Vec<(Direction, ShittyPosition)> {
-        vec![
+    pub fn neighbours(&self, position: ShittyPosition) -> [(Direction, ShittyPosition); 4] {
+        [
             (
                 Direction::Right,
                 ShittyPosition::new(position.x + 1, position.y),
@@ -230,7 +221,9 @@ pub struct UpgradeCost {
 }
 
 impl UpgradeCost {
-    pub fn new(iron: u16, osmium: u16) -> Self { Self { iron, osmium } }
+    pub fn new(iron: u16, osmium: u16) -> Self {
+        Self { iron, osmium }
+    }
 }
 
 impl PlayerInventory {

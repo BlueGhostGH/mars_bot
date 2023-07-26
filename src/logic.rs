@@ -1,13 +1,10 @@
-use std::todo;
-
 use crate::game::{
-    input::{Dimensions, GameInput, Map, PlayerInventory, ShittyPosition, PlayerStats, Tile},
-    output::{Action, Direction, GameOutput, Moves, Upgrade},
+    input::{GameInput, Map, PlayerInventory, PlayerStats, ShittyPosition, Tile},
+    output::{Action, GameOutput, Moves, Upgrade},
 };
 
 #[derive(Debug)]
 pub struct GameState {
-    pub dimensions: Dimensions,
     pub map: Map,
     pub player_stats: PlayerStats,
     pub player_inventory: PlayerInventory,
@@ -15,8 +12,16 @@ pub struct GameState {
 }
 
 impl GameState {
-    pub fn feed_input(&mut self, input: GameInput) {
-        self.dimensions = input.map.dimensions;
+    pub fn from_input(input: GameInput) -> Self {
+        Self {
+            map: input.map,
+            player_stats: input.player_stats,
+            player_inventory: input.player_inventory,
+            player_position: input.player_position,
+        }
+    }
+
+    pub fn feed_input(&self, input: GameInput) -> Self {
         self.map.merge_with(&input.map);
         self.player_stats = input.player_stats;
         self.player_inventory = input.player_inventory;
@@ -24,10 +29,17 @@ impl GameState {
     }
 
     pub fn target_upgrade(&self) -> Upgrade {
-        if !self.player_stats.has_battery {
+        let stats = self.player_stats;
+        if !stats.has_battery {
             Upgrade::Battery
-        } else {
+        } else if stats.wheel_level < 3 {
             Upgrade::Movement
+        } else if stats.drill_level < 3 {
+            Upgrade::Drill
+        } else if stats.gun_level < 3 {
+            Upgrade::Attack
+        } else {
+            Upgrade::Radar
         }
     }
 
@@ -36,7 +48,10 @@ impl GameState {
             .player_inventory
             .can_afford(self.target_upgrade().cost(self.player_stats))
         {
-            let base = self.map.closest_tile(Tile::Base).unwrap();
+            let base = self
+                .map
+                .closest_tile(self.player_position, Tile::Base)
+                .unwrap();
 
             if !self.player_stats.has_battery && base != self.player_position {
                 return self.map.move_towards(base);
@@ -45,13 +60,16 @@ impl GameState {
 
         let closest = self
             .map
-            .closest_tile(Tile::Osmium)
-            .or_else(|| self.map.closest_tile(Tile::Iron));
+            .closest_tile(self.player_position, Tile::Osmium)
+            .or_else(|| self.map.closest_tile(self.player_position, Tile::Iron));
 
         return if let Some(closest) = closest {
             self.map.move_towards(closest)
         } else {
-            let unknown = self.map.closest_tile(Tile::Unknown).unwrap();
+            let unknown = self
+                .map
+                .closest_tile(self.player_position, Tile::Unknown)
+                .unwrap();
             self.map.move_towards(unknown)
         };
     }
@@ -70,7 +88,7 @@ impl GameState {
             None
         };
 
-        let base = self.map.closest_tile(Tile::Base).unwrap();
+        let base = self.map.closest_tile(new_position, Tile::Base).unwrap();
         let upgrade = if self
             .player_inventory
             .can_afford(self.target_upgrade().cost(self.player_stats))

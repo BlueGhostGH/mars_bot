@@ -17,25 +17,5 @@
 pub mod game;
 pub mod logic;
 
-use rand::Rng;
-
 #[derive(Debug)]
 enum Error {}
-
-pub fn magic(input: game::input::GameInput) -> game::output::GameOutput
-{
-    let mut rng = rand::thread_rng();
-    let direction = match rng.gen_range(1..=4) {
-        1 => game::output::Direction::Right,
-        2 => game::output::Direction::Up,
-        3 => game::output::Direction::Left,
-        4 => game::output::Direction::Down,
-        _ => unreachable!(),
-    };
-
-    game::output::GameOutput {
-        moves: Some(game::output::Moves::One { first: direction }),
-        action: None,
-        upgrade: None,
-    }
-}

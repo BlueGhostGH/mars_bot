@@ -88,7 +88,7 @@ impl Upgrade {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct GameOutput {
     pub(crate) moves: Option<Moves>,
     pub(crate) action: Option<Action>,
