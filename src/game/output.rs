@@ -1,3 +1,5 @@
+use super::input::PlayerInventory;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Direction {
     Right,
@@ -18,7 +20,7 @@ impl Into<char> for Direction {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub(crate) enum Moves {
+pub enum Moves {
     One {
         first: Direction,
     },
@@ -52,6 +54,12 @@ pub(crate) enum Upgrade {
     Battery,
 
     Heal,
+}
+
+impl Upgrade {
+    pub fn cost(self) -> PlayerInventory {
+        todo!()
+    }
 }
 
 #[derive(Debug)]

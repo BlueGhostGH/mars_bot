@@ -1,4 +1,6 @@
-use super::output::GameOutput;
+use crate::game::output::Direction;
+
+use super::output::{GameOutput, Moves};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Dimensions {
@@ -23,6 +25,15 @@ pub enum Tile {
 
     #[default]
     Unknown,
+}
+
+impl Tile {
+    pub fn is_ore(self) -> bool {
+        match self {
+            Tile::Osmium | Tile::Iron => true,
+            _ => false,
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -67,15 +78,51 @@ impl Map {
             .copied()
     }
 
-    pub fn move_towards(&self, position: (usize, usize)) -> GameOutput {
+    pub fn move_towards(&self, position: (usize, usize)) -> (Option<Moves>, (usize, usize)) {
         todo!()
+    }
+
+    pub fn tile_at(&self, position: (usize, usize)) -> Option<Tile> {
+        self.tiles
+            .get(position.0)
+            .and_then(|array| array.get(position.1))
+            .map(|b| *b)
+    }
+
+    pub fn neighbours(&self, position: (usize, usize)) -> Vec<(Direction, (usize, usize))> {
+        vec![
+            (Direction::Right, (position.0 + 1, position.1)),
+            (Direction::Left, (position.0 - 1, position.1)),
+            (Direction::Down, (position.0, position.1 + 1)),
+            (Direction::Up, (position.0, position.1 - 1)),
+        ]
+    }
+
+    pub fn find_neighbour(&self, position: (usize, usize), target: Tile) -> Option<(Direction, (usize, usize))> {
+        self.neighbours(position)
+            .iter()
+            .filter(|(_, location)| self.tile_at(*location) == Some(target))
+            .copied()
+            .next()
+    }
+
+    pub fn can_upgrade(&self, stats: PlayerStats, position: PlayerPosition) {
+            let base = self.closest_tile(Tile::Base).unwrap();
+
+            if !self.player_stats.has_battery && base != self.player_position.as_vec() {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct PlayerPosition {
     pub x: u8,
     pub y: u8,
+}
+
+impl PlayerPosition {
+    pub fn as_vec(self) -> (usize, usize) {
+        (self.x as usize, self.y as usize)
+    }
 }
 
 #[derive(Debug)]
@@ -91,11 +138,17 @@ pub struct PlayerStats {
     pub has_battery: bool,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct PlayerInventory {
     pub stone: u16,
     pub iron: u16,
     pub osmium: u16,
+}
+
+impl PlayerInventory {
+    pub fn can_afford(self, other: Self) -> bool {
+        self.osmium >= other.osmium && self.iron >= other.iron
+    }
 }
 
 #[derive(Debug)]
