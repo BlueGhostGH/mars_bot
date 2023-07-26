@@ -14,7 +14,7 @@ pub struct GameState {
 impl GameState {
     pub fn feed_input(&mut self, input: GameInput) {
         self.dimensions = input.dimensions;
-        self.map = input.map;
+        self.map.merge(input.map);
     }
 }
 

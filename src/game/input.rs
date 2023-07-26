@@ -31,7 +31,7 @@ pub struct Map {
 }
 
 impl Map {
-    pub fn merge(self, other: Map) -> Map {
+    pub fn merge(&mut self, other: Map) {
         todo!()
     }
 }
