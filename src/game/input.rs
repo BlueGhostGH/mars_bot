@@ -1,5 +1,7 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 
+use super::output::GameOutput;
+
 #[derive(Debug, Clone, Copy)]
 pub struct Dimensions {
     width: u8,
@@ -89,6 +91,40 @@ impl Map {
         } else {
             None
         }
+    }
+
+    pub fn find_tiles(&self, target: Tile) -> Vec<PlayerPosition> {
+        self.tiles
+            .iter()
+            .enumerate()
+            .flat_map(|(x, array)| {
+                array
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(y, tile)| {
+                        if *tile == target {
+                            Some(PlayerPosition {
+                                x: x as u8,
+                                y: y as u8,
+                            })
+                        } else {
+                            None
+                        }
+                    })
+                    .collect::<Vec<PlayerPosition>>()
+            })
+            .collect()
+    }
+
+    pub fn closest_tile(&self, target: Tile) -> Option<PlayerPosition> {
+        self.find_tiles(target)
+            .iter()
+            .min_by_key(|position| self.distance_from_to(todo!(), **position))
+            .copied()
+    }
+
+    pub fn move_towards(&self, position: PlayerPosition) -> GameOutput {
+        todo!()
     }
 }
 
