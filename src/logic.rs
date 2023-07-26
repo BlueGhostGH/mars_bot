@@ -34,7 +34,7 @@ impl GameState {
         if self.player_stats.hit_points <= 3 {
             Some(Upgrade::Heal)
         } else {
-            Upgrade::UPGRADE_QUEUE.get(self.upgrade_queue_index)
+            Upgrade::UPGRADE_QUEUE.get(self.upgrade_queue_index).copied()
         }
     }
 

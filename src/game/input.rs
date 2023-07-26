@@ -69,7 +69,7 @@ impl Map {
                 found = true;
                 break;
             }
-            for w in self.find_neighbour(v, Tile::Air) {
+            for (_, w) in self.find_neighbour(v, Tile::Air) {
                 if explored.get(&w) == None {
                     explored.insert(w);
                     parents.insert(w, v);
