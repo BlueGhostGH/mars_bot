@@ -1,4 +1,4 @@
-use std::{println, dbg};
+use std::{dbg, println};
 
 use crate::game::{
     input::{GameInput, Map, PlayerInventory, PlayerStats, ShittyPosition, Tile},
@@ -12,6 +12,7 @@ pub struct GameState {
     pub player_inventory: PlayerInventory,
     pub player_position: ShittyPosition,
     pub upgrade_queue_index: usize,
+    pub base_position: ShittyPosition,
 }
 
 impl GameState {
@@ -25,28 +26,29 @@ impl GameState {
         }
     }
 
-    pub fn from_input(input: GameInput) -> Self {
+    fn from_input(input: GameInput) -> Self {
         let mut result = Self {
             map: input.map,
             player_stats: input.player_stats,
             player_inventory: input.player_inventory,
             player_position: input.player_position,
             upgrade_queue_index: 0,
+            base_position: input.player_position,
         };
 
-        result.map.set_tile_at(result.player_position, Tile::Base);
+        result.map.set_tile_at(result.player_position, Tile::Air);
 
         result
     }
 
-    pub fn feed_input(&mut self, input: GameInput) {
-        self.map.merge_with(&input.map);
+    fn feed_input(&mut self, input: GameInput) {
+        self.map.merge_with(&input.map, input.player_position);
         self.player_stats = input.player_stats;
         self.player_inventory = input.player_inventory;
         self.player_position = input.player_position;
     }
 
-    pub fn target_upgrade(&self) -> Option<Upgrade> {
+    fn target_upgrade(&self) -> Option<Upgrade> {
         if self.player_stats.hit_points <= 3 {
             Some(Upgrade::Heal)
         } else {
@@ -54,6 +56,10 @@ impl GameState {
                 .get(self.upgrade_queue_index)
                 .copied()
         }
+    }
+
+    fn can_upgrade(&self, position: ShittyPosition) -> bool {
+        position == self.base_position || self.player_stats.has_battery
     }
 
     fn move_towards(&self, to: ShittyPosition) -> (Option<Moves>, ShittyPosition) {
@@ -66,34 +72,28 @@ impl GameState {
             Some(target_upgrade)
                 if self
                     .player_inventory
-                    .can_afford(target_upgrade.cost(self.player_stats)) =>
+                    .can_afford(target_upgrade.cost(self.player_stats))
+                    && !self.can_upgrade(self.player_position) =>
             {
-                let base = self
-                    .map
-                    .closest_tile(self.player_position, Tile::Base)
-                    .unwrap();
-
-                if !self.player_stats.has_battery && base != self.player_position {
-                    return self.move_towards(base);
-                }
+                return self.move_towards(self.base_position);
             }
             _ => {}
         };
 
         let closest = self
             .map
-            .closest_tile(self.player_position, Tile::Osmium)
-            .or_else(|| self.map.closest_tile(self.player_position, Tile::Iron));
+            .closest_tile(Tile::Osmium)
+            .or_else(|| self.map.closest_tile(Tile::Iron));
 
         return if let Some(closest) = closest {
-            println!("going for a known: {closest:?} {:?}", self.map.tile_at(closest));
+            println!(
+                "going for a known: {closest:?} {:?}",
+                self.map.tile_at(closest)
+            );
             self.move_towards(closest)
         } else {
             println!("going for unknown");
-            let unknown = self
-                .map
-                .closest_tile(self.player_position, Tile::Unknown)
-                .unwrap();
+            let unknown = self.map.closest_tile(Tile::Unknown).unwrap();
             dbg!(self.player_position);
             dbg!(unknown);
             self.move_towards(unknown)
@@ -118,7 +118,8 @@ impl GameState {
             Some(target_upgrade)
                 if self
                     .player_inventory
-                    .can_afford(target_upgrade.cost(self.player_stats)) =>
+                    .can_afford(target_upgrade.cost(self.player_stats))
+                    && self.can_upgrade(new_position) =>
             {
                 if target_upgrade != Upgrade::Heal {
                     self.upgrade_queue_index += 1;

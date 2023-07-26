@@ -1,4 +1,5 @@
-use std::{println, dbg};
+#![feature(fs_try_exists)]
+use std::{dbg, println};
 
 use mars_bot::logic::GameState;
 
@@ -14,10 +15,16 @@ fn main() {
     let mut state: Option<GameState> = None;
 
     loop {
-        let input = ::std::fs::read_to_string(format!(
-            "{}/s{id}_{round}.txt",
-            ::std::env::args().nth(1).unwrap()
-        ));
+        let path = format!("{}/s{id}_{round}.txt", ::std::env::args().nth(1).unwrap());
+        let exists = std::fs::try_exists(&path).unwrap_or(false);
+
+        if exists {
+            ::std::thread::sleep(::std::time::Duration::from_millis(10));
+        } else {
+            continue;
+        }
+
+        let input = ::std::fs::read_to_string(path);
 
         if let Ok(input) = input {
             let input = mars_bot::game::input::GameInput::try_from(input.as_str()).unwrap();
@@ -39,7 +46,5 @@ fn main() {
         } else {
             continue;
         }
-
-        ::std::thread::sleep(::std::time::Duration::from_millis(800));
     }
 }
