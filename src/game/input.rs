@@ -106,11 +106,6 @@ impl Map {
             .next()
     }
 
-    pub fn can_upgrade(&self, stats: PlayerStats, position: PlayerPosition) {
-            let base = self.closest_tile(Tile::Base).unwrap();
-
-            if !self.player_stats.has_battery && base != self.player_position.as_vec() {
-    }
 }
 
 #[derive(Debug, Clone, Copy)]
