@@ -64,6 +64,7 @@ impl Default for MapEntry {
 pub struct Map {
     pub dimensions: Dimensions,
     pub tiles: Box<[Box<[MapEntry]>]>,
+    pub player_position: ShittyPosition
 }
 
 impl Map {
@@ -79,6 +80,7 @@ impl Map {
             }
         }
 
+        self.player_position = other.player_position;
         self.floodfill(player_position);
     }
 
@@ -123,11 +125,14 @@ impl Map {
 
     pub fn move_towards(
         &self,
-        from: ShittyPosition,
         to: ShittyPosition,
         wheel_level: u8,
     ) -> (Option<Moves>, ShittyPosition) {
-        todo!()
+        let mut location = to;
+        let mut moves  = [None ;3 ];
+        while entry != self.player_position {
+            moves.
+        }
     }
 
     pub fn tile_at(&self, position: ShittyPosition) -> Option<MapEntry> {
@@ -293,7 +298,6 @@ impl PlayerInventory {
 #[derive(Debug)]
 pub struct GameInput {
     pub map: Map,
-    pub player_position: ShittyPosition,
     pub player_stats: PlayerStats,
     pub player_inventory: PlayerInventory,
 }
@@ -354,7 +358,6 @@ impl TryFrom<&str> for GameInput {
             tiles
         };
 
-        let map = Map { dimensions, tiles };
 
         let player_position = {
             let (x, y) = lines.next().unwrap().split_once(' ').unwrap();
@@ -364,6 +367,8 @@ impl TryFrom<&str> for GameInput {
                 y: y.parse().unwrap(),
             }
         };
+
+        let map = Map { dimensions, tiles, player_position };
 
         let player_stats = {
             let mut stats = lines.next().unwrap().split_ascii_whitespace();
@@ -407,7 +412,6 @@ impl TryFrom<&str> for GameInput {
 
         Ok(GameInput {
             map,
-            player_position,
             player_stats,
             player_inventory,
         })

@@ -10,7 +10,6 @@ pub struct GameState {
     pub map: Map,
     pub player_stats: PlayerStats,
     pub player_inventory: PlayerInventory,
-    pub player_position: ShittyPosition,
     pub upgrade_queue_index: usize,
     pub base_position: ShittyPosition,
 }
@@ -28,24 +27,24 @@ impl GameState {
 
     fn from_input(input: GameInput) -> Self {
         let mut result = Self {
+            base_position: input.map.player_position,
             map: input.map,
             player_stats: input.player_stats,
             player_inventory: input.player_inventory,
-            player_position: input.player_position,
             upgrade_queue_index: 0,
-            base_position: input.player_position,
         };
 
-        result.map.set_tile_at(result.player_position, Tile::Air);
+        result
+            .map
+            .set_tile_at(result.map.player_position, Tile::Air);
 
         result
     }
 
     fn feed_input(&mut self, input: GameInput) {
-        self.map.merge_with(&input.map, input.player_position);
+        self.map.merge_with(&input.map, input.map.player_position);
         self.player_stats = input.player_stats;
         self.player_inventory = input.player_inventory;
-        self.player_position = input.player_position;
     }
 
     fn target_upgrade(&self) -> Option<Upgrade> {
@@ -63,8 +62,7 @@ impl GameState {
     }
 
     fn move_towards(&self, to: ShittyPosition) -> (Option<Moves>, ShittyPosition) {
-        self.map
-            .move_towards(self.player_position, to, self.player_stats.wheel_level)
+        self.map.move_towards(to, self.player_stats.wheel_level)
     }
 
     fn moves(&self) -> (Option<Moves>, ShittyPosition) {
@@ -73,7 +71,7 @@ impl GameState {
                 if self
                     .player_inventory
                     .can_afford(target_upgrade.cost(self.player_stats))
-                    && !self.can_upgrade(self.player_position) =>
+                    && !self.can_upgrade(self.map.player_position) =>
             {
                 return self.move_towards(self.base_position);
             }
@@ -94,7 +92,7 @@ impl GameState {
         } else {
             println!("going for unknown");
             let unknown = self.map.closest_tile(Tile::Unknown).unwrap();
-            dbg!(self.player_position);
+            dbg!(self.map.player_position);
             dbg!(unknown);
             self.move_towards(unknown)
         };
