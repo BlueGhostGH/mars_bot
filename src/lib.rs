@@ -15,6 +15,7 @@
 #![allow(clippy::new_without_default)]
 
 pub mod game;
+pub mod logic;
 
 use rand::Rng;
 

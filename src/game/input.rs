@@ -1,13 +1,13 @@
+use std::todo;
+
 #[derive(Debug)]
-struct Dimensions
-{
+pub struct Dimensions {
     width: u8,
     height: u8,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-enum Tile
-{
+pub enum Tile {
     Air,
     Stone,
     Cobblestone,
@@ -17,8 +17,7 @@ enum Tile
     Base,
     Acid,
 
-    Player
-    {
+    Player {
         id: u8,
     },
 
@@ -27,56 +26,55 @@ enum Tile
 }
 
 #[derive(Debug)]
-struct Map
-{
-    tiles: Box<[Box<[Tile]>]>,
+pub struct Map {
+    pub tiles: Box<[Box<[Tile]>]>,
+}
+
+impl Map {
+    pub fn merge(self, other: Map) -> Map {
+        todo!()
+    }
 }
 
 #[derive(Debug)]
-struct PlayerPosition
-{
-    x: u8,
-    y: u8,
+pub struct PlayerPosition {
+    pub x: u8,
+    pub y: u8,
 }
 
 #[derive(Debug)]
-struct PlayerStats
-{
-    hit_points: u8,
+pub struct PlayerStats {
+    pub hit_points: u8,
 
-    drill_level: u8,
-    gun_level: u8,
-    wheel_level: u8,
-    camera_level: u8,
+    pub drill_level: u8,
+    pub gun_level: u8,
+    pub wheel_level: u8,
+    pub camera_level: u8,
 
-    has_antenna: bool,
-    has_battery: bool,
+    pub has_antenna: bool,
+    pub has_battery: bool,
 }
 
 #[derive(Debug)]
-struct PlayerInventory
-{
-    stone: u16,
-    iron: u16,
-    osmium: u16,
+pub struct PlayerInventory {
+    pub stone: u16,
+    pub iron: u16,
+    pub osmium: u16,
 }
 
 #[derive(Debug)]
-pub struct GameInput
-{
-    dimensions: Dimensions,
-    map: Map,
-    player_position: PlayerPosition,
-    player_stats: PlayerStats,
-    player_inventory: PlayerInventory,
+pub struct GameInput {
+    pub dimensions: Dimensions,
+    pub map: Map,
+    pub player_position: PlayerPosition,
+    pub player_stats: PlayerStats,
+    pub player_inventory: PlayerInventory,
 }
 
-impl TryFrom<&str> for GameInput
-{
+impl TryFrom<&str> for GameInput {
     type Error = !;
 
-    fn try_from(input: &str) -> Result<Self, Self::Error>
-    {
+    fn try_from(input: &str) -> Result<Self, Self::Error> {
         let mut lines = input.lines();
 
         let dimensions = {

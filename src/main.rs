@@ -1,14 +1,5 @@
-<<<<<<< Updated upstream
 fn main()
 {
-=======
-use mars_bot::GameOutput;
-mod logic;
-
-fn main() {
-    let file = ::std::fs::read_to_string(::std::env::args().nth(1).unwrap()).unwrap();
-    let input = mars_bot::GameInput::try_from(file.as_str()).unwrap();
->>>>>>> Stashed changes
     let id = {
         println!("Enter ID:");
         let mut id = String::new();
