@@ -1,5 +1,3 @@
-use mars_bot::GameOutput;
-
 fn main()
 {
     let id = {
@@ -18,7 +16,7 @@ fn main()
         ));
 
         if let Ok(input) = input {
-            let input = mars_bot::GameInput::try_from(input.as_str()).unwrap();
+            let input = mars_bot::game::input::GameInput::try_from(input.as_str()).unwrap();
 
             // TODO: magic here
 
@@ -26,7 +24,7 @@ fn main()
 
             ::std::fs::write(
                 format!("{}/c{id}_{round}.txt", ::std::env::args().nth(1).unwrap()),
-                <GameOutput as Into<String>>::into(output),
+                <mars_bot::game::output::GameOutput as Into<String>>::into(output),
             )
             .unwrap();
 
@@ -34,5 +32,7 @@ fn main()
         } else {
             continue;
         }
+
+        ::std::thread::sleep(::std::time::Duration::from_secs(2));
     }
 }
