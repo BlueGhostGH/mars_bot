@@ -39,6 +39,10 @@ impl Map {
             }
         }
     }
+
+    pub fn distance_to(&self, position: (usize, usize))  -> usize {
+        todo!()
+    }
 }
 
 #[derive(Debug)]

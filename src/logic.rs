@@ -1,7 +1,7 @@
 use std::todo;
 
 use crate::game::{
-    input::{Dimensions, GameInput, Map},
+    input::{Dimensions, GameInput, Map, Tile},
     output::{Direction, GameOutput},
 };
 
@@ -18,7 +18,7 @@ impl GameState {
     }
 
     pub fn magic(&self) -> GameOutput {
-        let ores = self
+        let ores: Vec<(usize, usize)> = self
             .map
             .tiles
             .iter()
@@ -31,8 +31,15 @@ impl GameState {
                         Tile::Osmium | Tile::Iron => Some((x, y)),
                         _ => None,
                     })
-                    .collect()
+                    .collect::<Vec<(usize, usize)>>()
             })
             .collect();
+
+        let closest = ores.iter().min_by_key(|position| self.map.distance_to(**position));
+        if let Some(closest) = closest {
+            map.move_towards(closest)
+        } else {
+
+        }
     }
 }
