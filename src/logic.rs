@@ -16,8 +16,23 @@ impl GameState {
         self.dimensions = input.dimensions;
         self.map.merge(input.map);
     }
-}
 
-pub fn magic(game_state: &mut GameState) -> GameOutput {
-    todo!();
+    pub fn magic(&self) -> GameOutput {
+        let ores = self
+            .map
+            .tiles
+            .iter()
+            .enumerate()
+            .flat_map(|(x, array)| {
+                array
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(y, tile)| match tile {
+                        Tile::Osmium | Tile::Iron => Some((x, y)),
+                        _ => None,
+                    })
+                    .collect()
+            })
+            .collect();
+    }
 }
