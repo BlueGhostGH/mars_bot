@@ -9,6 +9,7 @@ pub struct GameState {
     pub player_stats: PlayerStats,
     pub player_inventory: PlayerInventory,
     pub player_position: ShittyPosition,
+    pub upgrade_queue_index: usize,
 }
 
 impl GameState {
@@ -18,45 +19,43 @@ impl GameState {
             player_stats: input.player_stats,
             player_inventory: input.player_inventory,
             player_position: input.player_position,
+            upgrade_queue_index: 0,
         }
     }
 
-    pub fn feed_input(&self, input: GameInput) -> Self {
+    pub fn feed_input(&self, input: GameInput) {
         self.map.merge_with(&input.map);
         self.player_stats = input.player_stats;
         self.player_inventory = input.player_inventory;
         self.player_position = input.player_position;
     }
 
-    pub fn target_upgrade(&self) -> Upgrade {
-        let stats = self.player_stats;
-        if !stats.has_battery {
-            Upgrade::Battery
-        } else if stats.wheel_level < 3 {
-            Upgrade::Movement
-        } else if stats.drill_level < 3 {
-            Upgrade::Drill
-        } else if stats.gun_level < 3 {
-            Upgrade::Attack
+    pub fn target_upgrade(&self) -> Option<Upgrade> {
+        if self.player_stats.hit_points <= 3 {
+            Some(Upgrade::Heal)
         } else {
-            Upgrade::Radar
+            Upgrade::UPGRADE_QUEUE.get(self.upgrade_queue_index)
         }
     }
 
     fn moves(&self) -> (Option<Moves>, ShittyPosition) {
-        if self
-            .player_inventory
-            .can_afford(self.target_upgrade().cost(self.player_stats))
-        {
-            let base = self
-                .map
-                .closest_tile(self.player_position, Tile::Base)
-                .unwrap();
+        match self.target_upgrade() {
+            Some(target_upgrade)
+                if self
+                    .player_inventory
+                    .can_afford(target_upgrade.cost(self.player_stats)) =>
+            {
+                let base = self
+                    .map
+                    .closest_tile(self.player_position, Tile::Base)
+                    .unwrap();
 
-            if !self.player_stats.has_battery && base != self.player_position {
-                return self.map.move_towards(base);
+                if !self.player_stats.has_battery && base != self.player_position {
+                    return self.map.move_towards(base);
+                }
             }
-        }
+            _ => {}
+        };
 
         let closest = self
             .map
@@ -89,14 +88,20 @@ impl GameState {
         };
 
         let base = self.map.closest_tile(new_position, Tile::Base).unwrap();
-        let upgrade = if self
-            .player_inventory
-            .can_afford(self.target_upgrade().cost(self.player_stats))
-            && (new_position == base || self.player_stats.has_battery)
-        {
-            Some(self.target_upgrade())
-        } else {
-            None
+        let target_upgrade = self.target_upgrade();
+        let upgrade = match self.target_upgrade() {
+            Some(target_upgrade)
+                if self
+                    .player_inventory
+                    .can_afford(target_upgrade.cost(self.player_stats)) =>
+            {
+                if target_upgrade != Upgrade::Heal {
+                    self.upgrade_queue_index += 1;
+                }
+
+                Some(target_upgrade)
+            }
+            _ => None,
         };
 
         GameOutput {

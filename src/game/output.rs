@@ -45,7 +45,7 @@ pub enum Action {
     Place { direction: Direction },
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Upgrade {
     Sight,
     Attack,
@@ -86,6 +86,19 @@ impl Upgrade {
             },
         }
     }
+
+    pub const UPGRADE_QUEUE: [Upgrade; 10] = [
+        Upgrade::Battery,
+        Upgrade::Movement,
+        Upgrade::Sight,
+        Upgrade::Drill,
+        Upgrade::Attack,
+        Upgrade::Movement,
+        Upgrade::Sight,
+        Upgrade::Attack,
+        Upgrade::Drill,
+        Upgrade::Radar,
+    ];
 }
 
 #[derive(Debug, Clone, Copy)]
