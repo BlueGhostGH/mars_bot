@@ -59,7 +59,7 @@ impl Map {
     pub fn distance_from_to(&self, from: ShittyPosition, to: ShittyPosition) -> Option<usize> {
         let root = from;
         let goal = to;
-        let mut found = false;
+        let mut found = None;
 
         let mut explored = HashSet::new();
         let mut parents = HashMap::new();
@@ -67,13 +67,16 @@ impl Map {
         let mut queue = VecDeque::new();
         explored.insert(from);
         queue.push_back(from);
+
         while !queue.is_empty() {
             let v = queue.pop_front().unwrap();
-            if v == goal {
-                found = true;
+
+            if self.neighbours(goal).iter().any(|c| c.1 == v) {
+                found = Some(v);
                 break;
             }
-            for (_, w) in self.find_neighbours(v, Tile::Air) {
+
+            for (_, w) in self.find_empty_neighbours(v) {
                 if explored.get(&w) == None {
                     explored.insert(w);
                     parents.insert(w, v);
@@ -82,12 +85,13 @@ impl Map {
             }
         }
 
-        if found {
-            let mut curr = goal;
+        if let Some(endpoint) = found {
+            let mut curr = endpoint;
             let mut dist = 0;
 
             while curr != root {
                 curr = *parents.get(&curr).unwrap();
+                dbg!(curr);
                 dist += 1;
             }
 
@@ -135,7 +139,7 @@ impl Map {
     ) -> (Option<Moves>, ShittyPosition) {
         let root = from;
         let goal = to;
-        let mut found = false;
+        let mut found = None;
 
         let mut explored = HashSet::new();
         let mut parents = HashMap::new();
@@ -145,18 +149,12 @@ impl Map {
         queue.push_back(from);
         while !queue.is_empty() {
             let v = queue.pop_front().unwrap();
-            if v == goal {
-                found = true;
+            if self.find_empty_neighbours(goal).iter().any(|c| c.1 == v) {
+                found = Some(v);
                 break;
             }
-            for w in self.find_neighbours(v, Tile::Air) {
-                if explored.get(&w.1) == None {
-                    explored.insert(w.1);
-                    parents.insert(w.1, (v, w.0));
-                    queue.push_back(w.1);
-                }
-            }
-            for w in self.find_neighbours(v, Tile::Unknown) {
+
+            for w in self.find_empty_neighbours(v) {
                 if explored.get(&w.1) == None {
                     explored.insert(w.1);
                     parents.insert(w.1, (v, w.0));
@@ -165,14 +163,13 @@ impl Map {
             }
         }
 
-        if found {
-            let mut curr = goal;
+        if let Some(endpoint) = found {
+            let mut curr = endpoint;
             let mut dist = 0;
 
             let mut moves = [None; 3];
 
             while curr != root {
-                dbg!("bruh");
                 moves.rotate_right(1);
                 let (new_curr, dir) = *parents.get(&curr).unwrap();
                 curr = new_curr;
@@ -228,7 +225,6 @@ impl Map {
                             + direction_to_position(moves[1].unwrap()).x
                             + direction_to_position(moves[2].unwrap()).x,
                         y: from.y
-                            + from.y
                             + direction_to_position(moves[0].unwrap()).y
                             + direction_to_position(moves[1].unwrap()).y
                             + direction_to_position(moves[2].unwrap()).y,
@@ -271,6 +267,21 @@ impl Map {
                 ShittyPosition::new(position.x, position.y - 1),
             ),
         ]
+    }
+
+    pub fn find_empty_neighbours(
+        &self,
+        position: ShittyPosition,
+    ) -> Vec<(Direction, ShittyPosition)> {
+        // TODO: make this use find_neighbours once that returns an iter
+        self.neighbours(position)
+            .iter()
+            .filter(|(_, location)| match self.tile_at(*location) {
+                Some(Tile::Air | Tile::Base | Tile::Unknown) => true,
+                _ => false,
+            })
+            .copied()
+            .collect()
     }
 
     pub fn find_neighbours(
