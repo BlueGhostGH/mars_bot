@@ -223,8 +223,18 @@ pub struct PlayerInventory {
     pub osmium: u16,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct UpgradeCost {
+    pub iron: u16,
+    pub osmium: u16,
+}
+
+impl UpgradeCost {
+    pub fn new(iron: u16, osmium: u16) -> Self { Self { iron, osmium } }
+}
+
 impl PlayerInventory {
-    pub fn can_afford(self, other: Self) -> bool {
+    pub fn can_afford(self, other: UpgradeCost) -> bool {
         self.osmium >= other.osmium && self.iron >= other.iron
     }
 }

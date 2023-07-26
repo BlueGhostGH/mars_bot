@@ -1,4 +1,6 @@
-use super::input::{PlayerInventory, PlayerStats};
+use std::unreachable;
+
+use super::input::{PlayerInventory, PlayerStats, UpgradeCost};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Direction {
@@ -35,7 +37,7 @@ pub enum Moves {
     },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum Action {
     Attack { direction: Direction },
     Scan { direction: Direction },
@@ -43,7 +45,7 @@ pub enum Action {
     Place { direction: Direction },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum Upgrade {
     Sight,
     Attack,
@@ -57,8 +59,32 @@ pub enum Upgrade {
 }
 
 impl Upgrade {
-    pub fn cost(self, stats: PlayerStats) -> PlayerInventory {
-        todo!()
+    pub fn cost(self, stats: PlayerStats) -> UpgradeCost {
+        match self {
+            Self::Heal => UpgradeCost::new(0, 1),
+            Self::Battery => UpgradeCost::new(1, 1),
+            Self::Radar => UpgradeCost::new(2, 1),
+            Self::Attack => match stats.gun_level {
+                1 => UpgradeCost::new(3, 0),
+                2 => UpgradeCost::new(6, 1),
+                _ => unreachable!(),
+            },
+            Self::Sight => match stats.camera_level {
+                1 => UpgradeCost::new(3, 0),
+                2 => UpgradeCost::new(6, 1),
+                _ => unreachable!(),
+            },
+            Self::Drill => match stats.drill_level {
+                1 => UpgradeCost::new(3, 0),
+                2 => UpgradeCost::new(6, 1),
+                _ => unreachable!(),
+            },
+            Self::Movement => match stats.wheel_level {
+                1 => UpgradeCost::new(3, 0),
+                2 => UpgradeCost::new(6, 1),
+                _ => unreachable!(),
+            },
+        }
     }
 }
 
