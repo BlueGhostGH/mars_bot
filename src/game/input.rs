@@ -91,9 +91,10 @@ impl Map {
 
             while curr != root {
                 curr = *parents.get(&curr).unwrap();
-                dbg!(curr);
                 dist += 1;
             }
+
+            dbg!(dist);
 
             Some(dist)
         } else {
@@ -125,6 +126,7 @@ impl Map {
     }
 
     pub fn closest_tile(&self, from: ShittyPosition, target: Tile) -> Option<ShittyPosition> {
+        dbg!("Here");
         self.find_tiles(target)
             .iter()
             .min_by_key(|position| self.distance_from_to(from, **position).unwrap_or(10000))
@@ -277,7 +279,7 @@ impl Map {
         self.neighbours(position)
             .iter()
             .filter(|(_, location)| match self.tile_at(*location) {
-                Some(Tile::Air | Tile::Base | Tile::Unknown) => true,
+                Some(Tile::Air | Tile::Base) => true,
                 _ => false,
             })
             .copied()
