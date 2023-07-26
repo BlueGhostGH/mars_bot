@@ -22,19 +22,8 @@ impl Into<char> for Direction {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub enum Moves {
-    One {
-        first: Direction,
-    },
-    Two {
-        first: Direction,
-        second: Direction,
-    },
-    Three {
-        first: Direction,
-        second: Direction,
-        third: Direction,
-    },
+pub struct Moves {
+    mvs: [Option<Direction>; 3],
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -111,24 +100,13 @@ pub struct GameOutput {
 impl Into<String> for GameOutput {
     fn into(self) -> String {
         let moves = self.moves.map(|moves| {
-            match moves {
-                Moves::One { first } => ::std::iter::once(first).collect::<Vec<_>>(),
-                Moves::Two { first, second } => ::std::iter::once(first)
-                    .chain(::std::iter::once(second))
-                    .collect::<Vec<_>>(),
-                Moves::Three {
-                    first,
-                    second,
-                    third,
-                } => ::std::iter::once(first)
-                    .chain(::std::iter::once(second))
-                    .chain(::std::iter::once(third))
-                    .collect::<Vec<_>>(),
-            }
-            .into_iter()
-            .map(|direction| direction.into())
-            .intersperse(' ')
-            .collect::<String>()
+            moves
+                .mvs
+                .into_iter()
+                .flatten()
+                .map(|direction| direction.into())
+                .intersperse(' ')
+                .collect::<String>()
         });
 
         let action = self.action.map(|action| {
