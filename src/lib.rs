@@ -14,6 +14,8 @@
 )]
 #![allow(clippy::new_without_default)]
 
+use rand::Rng;
+
 #[derive(Debug)]
 struct Dimensions
 {
@@ -350,16 +352,20 @@ impl Into<String> for GameOutput
     }
 }
 
-pub fn magic(input: GameInput) -> GameOutput
+pub fn magic(_input: GameInput) -> GameOutput
 {
+    let mut rng = rand::thread_rng();
+    let direction = match rng.gen_range(1..=4) {
+        1 => Direction::Right,
+        2 => Direction::Up,
+        3 => Direction::Left,
+        4 => Direction::Down,
+        _ => unreachable!(),
+    };
+
     GameOutput {
-        moves: Some(Moves::Two {
-            first: Direction::Up,
-            second: Direction::Right,
-        }),
-        action: Some(Action::Attack {
-            direction: Direction::Right,
-        }),
-        upgrade: Some(Upgrade::Heal),
+        moves: Some(Moves::One { first: direction }),
+        action: None,
+        upgrade: None,
     }
 }
