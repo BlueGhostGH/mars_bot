@@ -18,28 +18,16 @@ impl GameState {
     }
 
     pub fn magic(&self) -> GameOutput {
-        let ores: Vec<(usize, usize)> = self
+        let closest = self
             .map
-            .tiles
-            .iter()
-            .enumerate()
-            .flat_map(|(x, array)| {
-                array
-                    .iter()
-                    .enumerate()
-                    .filter_map(|(y, tile)| match tile {
-                        Tile::Osmium | Tile::Iron => Some((x, y)),
-                        _ => None,
-                    })
-                    .collect::<Vec<(usize, usize)>>()
-            })
-            .collect();
+            .closest_tile(Tile::Osmium)
+            .or_else(|| self.map.closest_tile(Tile::Iron));
 
-        let closest = ores.iter().min_by_key(|position| self.map.distance_to(**position));
         if let Some(closest) = closest {
-            map.move_towards(closest)
+            self.map.move_towards(closest)
         } else {
-
+            let unknown = self.map.closest_tile(Tile::Unknown).unwrap();
+            self.map.move_towards(unknown)
         }
     }
 }

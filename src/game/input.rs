@@ -1,3 +1,5 @@
+use super::output::GameOutput;
+
 #[derive(Debug, Clone, Copy)]
 pub struct Dimensions {
     width: u8,
@@ -40,7 +42,32 @@ impl Map {
         }
     }
 
-    pub fn distance_to(&self, position: (usize, usize))  -> usize {
+    pub fn distance_to(&self, position: (usize, usize)) -> usize {
+        todo!()
+    }
+
+    pub fn find_tiles(&self, target: Tile) -> Vec<(usize, usize)> {
+        self.tiles
+            .iter()
+            .enumerate()
+            .flat_map(|(x, array)| {
+                array
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(y, tile)| if *tile == target { Some((x, y)) } else { None })
+                    .collect::<Vec<(usize, usize)>>()
+            })
+            .collect()
+    }
+
+    pub fn closest_tile(&self, target: Tile) -> Option<(usize, usize)> {
+        self.find_tiles(target)
+            .iter()
+            .min_by_key(|position| self.distance_to(**position))
+            .copied()
+    }
+
+    pub fn move_towards(&self, position: (usize, usize)) -> GameOutput {
         todo!()
     }
 }
