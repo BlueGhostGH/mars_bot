@@ -1,4 +1,4 @@
-use super::input::PlayerInventory;
+use super::input::{PlayerInventory, PlayerStats};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Direction {
@@ -57,7 +57,7 @@ pub(crate) enum Upgrade {
 }
 
 impl Upgrade {
-    pub fn cost(self) -> PlayerInventory {
+    pub fn cost(self, stats: PlayerStats) -> PlayerInventory {
         todo!()
     }
 }

@@ -24,13 +24,17 @@ impl GameState {
     }
 
     pub fn target_upgrade(&self) -> Upgrade {
-        todo!()
+        if !self.player_stats.has_battery {
+            Upgrade::Battery
+        } else {
+            Upgrade::Movement
+        }
     }
 
     fn moves(&self) -> (Option<Moves>, (usize, usize)) {
         if self
             .player_inventory
-            .can_afford(self.target_upgrade().cost())
+            .can_afford(self.target_upgrade().cost(self.player_stats))
         {
             let base = self.map.closest_tile(Tile::Base).unwrap();
 
@@ -69,7 +73,7 @@ impl GameState {
         let base = self.map.closest_tile(Tile::Base).unwrap();
         let upgrade = if self
             .player_inventory
-            .can_afford(self.target_upgrade().cost())
+            .can_afford(self.target_upgrade().cost(self.player_stats))
             && (new_position == base || self.player_stats.has_battery)
         {
             Some(self.target_upgrade())
