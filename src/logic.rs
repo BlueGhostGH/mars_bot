@@ -1,5 +1,3 @@
-use std::{dbg, println};
-
 use crate::game::{
     input::{GameInput, Map, PlayerInventory, PlayerStats, ShittyPosition, Tile},
     output::{Action, Direction, GameOutput, Moves, Upgrade},
@@ -225,7 +223,8 @@ impl GameState {
     }
 
     pub fn magic(&mut self) -> GameOutput {
-        let attack_direction = if let Some(CachedPlayer {
+        let mut run_away = None;
+        let attack = if let Some(CachedPlayer {
             up_to_date: true,
             position,
             stats:
@@ -253,8 +252,21 @@ impl GameState {
                 )
             });
 
-            match enemy_around {
-                Some((direction, _)) if free_neighbours.len() == 0 => Some(*direction),
+            match enemy_around.copied() {
+                Some((direction, _)) if free_neighbours.len() == 0 => {
+                    Some(Action::Attack { direction })
+                }
+                Some((direction, _)) => {
+                    let move_direction = match direction {
+                        Direction::Right => Direction::Left,
+                        Direction::Up => Direction::Down,
+                        Direction::Left => Direction::Right,
+                        Direction::Down => Direction::Up,
+                    };
+
+                    run_away = Some(move_direction);
+                    Some(Action::Place { direction })
+                }
                 _ => {
                     let distance_and_direction = if player_position.x == position.x {
                         Some((
@@ -282,7 +294,7 @@ impl GameState {
                         Some((distance, direction))
                             if distance <= gun_level && gun_level > enemy_gun_level =>
                         {
-                            Some(direction)
+                            Some(Action::Attack { direction })
                         }
                         _ => None,
                     }
@@ -292,15 +304,46 @@ impl GameState {
             None
         };
 
-        let (moves, new_position, optional_mining_direction) = self.moves();
+        let (moves, new_position, optional_mining_direction) = match run_away {
+            Some(direction) => (
+                Moves {
+                    mvs: ::std::iter::once(Some(direction))
+                        .cycle()
+                        .take(self.player_stats.wheel_level as usize)
+                        .chain(
+                            ::std::iter::once(None)
+                                .take(3 - self.player_stats.wheel_level as usize),
+                        )
+                        .collect::<Vec<_>>()
+                        .try_into()
+                        .unwrap(),
+                },
+                ShittyPosition {
+                    x: self.map.player_position.x
+                        + match direction {
+                            Direction::Right => self.player_stats.wheel_level as i8,
+                            Direction::Left => -(self.player_stats.wheel_level as i8),
+                            _ => 0,
+                        },
+                    y: self.map.player_position.y
+                        + match direction {
+                            Direction::Down => self.player_stats.wheel_level as i8,
+                            Direction::Up => -(self.player_stats.wheel_level as i8),
+                            _ => 0,
+                        },
+                },
+                self.moves().2,
+            ),
+            None => self.moves(),
+        };
         let neighbour = self
             .map
             .find_neighbour(new_position, Tile::Osmium)
             .or_else(|| self.map.find_neighbour(new_position, Tile::Iron))
             .or_else(|| self.map.find_neighbour(new_position, Tile::Stone));
 
-        let action = if let Some(direction) = attack_direction {
-            Some(Action::Attack { direction })
+        let action = if let Some(_) = attack {
+            attack
         } else if let Some(direction) = optional_mining_direction {
             Some(Action::Mine { direction })
         } else if let Some((direction, _)) = neighbour {
@@ -325,8 +368,8 @@ impl GameState {
             _ => None,
         };
 
-        println!("{}", &self.map);
-        println!("{:?}", &self.map.dimensions);
+        // println!("{}", &self.map);
+        // println!("{:?}", &self.map.dimensions);
 
         GameOutput {
             moves: Some(moves),
