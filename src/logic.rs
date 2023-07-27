@@ -352,8 +352,10 @@ impl GameState {
                     },
             }),
             true,
-        ) = (&self.cached_player, self.cage_step != 4)
-        {
+        ) = (
+            &self.cached_player,
+            self.cage_step != 4 && self.acid_level() > 0,
+        ) {
             let GameState {
                 map: Map {
                     player_position, ..
@@ -425,20 +427,22 @@ impl GameState {
         };
 
         let (moves, new_position, optional_mining_direction) = match run_away {
-            Some(direction) if self.cage_step != 4 => self.move_towards(ShittyPosition {
-                x: self.map.player_position.x
-                    + match direction {
-                        Direction::Right => 3,
-                        Direction::Left => -3,
-                        _ => 0,
-                    },
-                y: self.map.player_position.y
-                    + match direction {
-                        Direction::Up => -3,
-                        Direction::Down => 3,
-                        _ => 0,
-                    },
-            }),
+            Some(direction) if self.cage_step != 4 && self.acid_level() > 0 => {
+                self.move_towards(ShittyPosition {
+                    x: self.map.player_position.x
+                        + match direction {
+                            Direction::Right => 3,
+                            Direction::Left => -3,
+                            _ => 0,
+                        },
+                    y: self.map.player_position.y
+                        + match direction {
+                            Direction::Up => -3,
+                            Direction::Down => 3,
+                            _ => 0,
+                        },
+                })
+            }
             // (
             //     Moves {
             //         mvs: ::std::iter::once(Some(direction))
