@@ -38,11 +38,13 @@ impl GameState {
             .map
             .set_tile_at(result.map.player_position, Tile::Air);
 
+        result.map.floodfill();
+
         result
     }
 
     fn feed_input(&mut self, input: GameInput) {
-        self.map.merge_with(&input.map, input.map.player_position);
+        self.map.merge_with(&input.map);
         self.player_stats = input.player_stats;
         self.player_inventory = input.player_inventory;
     }
@@ -61,11 +63,11 @@ impl GameState {
         position == self.base_position || self.player_stats.has_battery
     }
 
-    fn move_towards(&self, to: ShittyPosition) -> (Option<Moves>, ShittyPosition) {
+    fn move_towards(&self, to: ShittyPosition) -> (Moves, ShittyPosition) {
         self.map.move_towards(to, self.player_stats.wheel_level)
     }
 
-    fn moves(&self) -> (Option<Moves>, ShittyPosition) {
+    fn moves(&self) -> (Moves, ShittyPosition) {
         match self.target_upgrade() {
             Some(target_upgrade)
                 if self
@@ -129,7 +131,7 @@ impl GameState {
         };
 
         GameOutput {
-            moves,
+            moves: Some(moves),
             action,
             upgrade,
         }

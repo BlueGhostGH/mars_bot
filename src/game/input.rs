@@ -38,7 +38,7 @@ impl Tile {
 #[derive(Debug, Clone, Copy)]
 pub struct MapEntry {
     pub distance: usize,
-    pub parent: Option<ShittyPosition>,
+    pub parent: Option<(Direction, ShittyPosition)>,
     pub tile: Tile,
 }
 
@@ -64,11 +64,11 @@ impl Default for MapEntry {
 pub struct Map {
     pub dimensions: Dimensions,
     pub tiles: Box<[Box<[MapEntry]>]>,
-    pub player_position: ShittyPosition
+    pub player_position: ShittyPosition,
 }
 
 impl Map {
-    pub fn merge_with(&mut self, other: &Map, player_position: ShittyPosition) {
+    pub fn merge_with(&mut self, other: &Map) {
         for i in 0..self.dimensions.width.into() {
             for j in 0..self.dimensions.height.into() {
                 if self.tiles[i][j].tile != other.tiles[i][j].tile
@@ -81,7 +81,7 @@ impl Map {
         }
 
         self.player_position = other.player_position;
-        self.floodfill(player_position);
+        self.floodfill();
     }
 
     pub fn find_tiles(&self, target: Tile) -> Vec<ShittyPosition> {
@@ -113,26 +113,36 @@ impl Map {
             .and_then(|array| array.get_mut(position.y as usize))
     }
 
-    pub fn closest_tile(
-        &self,
-        target: Tile,
-    ) -> Option<ShittyPosition> {
+    pub fn closest_tile(&self, target: Tile) -> Option<ShittyPosition> {
         self.find_tiles(target)
             .iter()
             .min_by_key(|position| self.tile_at(**position).unwrap().distance)
             .copied()
     }
 
-    pub fn move_towards(
-        &self,
-        to: ShittyPosition,
-        wheel_level: u8,
-    ) -> (Option<Moves>, ShittyPosition) {
+    pub fn move_towards(&self, to: ShittyPosition, wheel_level: u8) -> (Moves, ShittyPosition) {
         let mut location = to;
-        let mut moves  = [None ;3 ];
-        while entry != self.player_position {
-            moves.
+        let mut moves: [Option<(Direction, ShittyPosition)>; 3] = [None; 3];
+
+        while location != self.player_position {
+            moves.rotate_right(1);
+            let entry = self.tile_at(location).unwrap();
+            dbg!(entry);
+            dbg!(to);
+            let parent = entry.parent.unwrap();
+            moves[0] = Some((parent.0, location));
+            location = parent.1
         }
+
+        for i in wheel_level..3 {
+            moves[i as usize] = None;
+        }
+
+        let final_moves = Moves {
+            mvs: moves.map(|e| e.map(|(d, _)| d)),
+        };
+
+        (final_moves, moves[(wheel_level - 1) as usize].unwrap().1)
     }
 
     pub fn tile_at(&self, position: ShittyPosition) -> Option<MapEntry> {
@@ -167,14 +177,20 @@ impl Map {
         ]
     }
 
-    pub fn floodfill(&mut self, from: ShittyPosition) {
+    pub fn floodfill(&mut self) {
         let mut queue: HashSet<ShittyPosition> = HashSet::new();
 
         for x in 0..self.dimensions.width {
             for y in 0..self.dimensions.height {
-                queue.insert(ShittyPosition::new(x as i8, y as i8));
+                let position = ShittyPosition::new(x as i8, y as i8);
+                queue.insert(position);
+                let entry = self.tile_at_mut(position).unwrap();
+                entry.distance = usize::MAX / 2;
             }
         }
+
+        let source_entry = self.tile_at_mut(self.player_position).unwrap();
+        source_entry.distance = 0;
 
         while queue.len() > 0 {
             let min_position = queue
@@ -184,26 +200,29 @@ impl Map {
                 .unwrap();
 
             queue.remove(&min_position);
+
             let dist_to_min = self.tile_at(min_position).unwrap().distance;
 
             // TODO: handle multiple wheels
-            for (_, neighbour) in self.neighbours(min_position) {
+            for (direction, neighbour) in self.neighbours(min_position) {
                 if queue.contains(&neighbour) {
                     let entry = self.tile_at_mut(neighbour).unwrap();
                     let weight = match entry.tile {
-                        Tile::Osmium => 1,
-                        Tile::Iron => 4,
-                        Tile::Stone | Tile::Cobblestone => 8,
-                        Tile::Unknown => 6,
-                        Tile::Bedrock => 1000,
-                        Tile::Acid => 1000,
-                        _ => 5,
+                        Tile::Osmium => Some(1),
+                        Tile::Iron => Some(4),
+                        Tile::Stone | Tile::Cobblestone => Some(8),
+                        Tile::Unknown => Some(6),
+                        Tile::Bedrock => None,
+                        Tile::Acid => None,
+                        _ => Some(5),
                     };
 
-                    let alt = dist_to_min + weight;
-                    if alt < entry.distance {
-                        entry.distance = alt;
-                        entry.parent = Some(min_position);
+                    if let Some(weight) = weight {
+                        let alt = dist_to_min + weight;
+                        if alt < entry.distance {
+                            entry.distance = alt;
+                            entry.parent = Some((direction, min_position));
+                        }
                     }
                 };
             }
@@ -358,7 +377,6 @@ impl TryFrom<&str> for GameInput {
             tiles
         };
 
-
         let player_position = {
             let (x, y) = lines.next().unwrap().split_once(' ').unwrap();
 
@@ -368,7 +386,11 @@ impl TryFrom<&str> for GameInput {
             }
         };
 
-        let map = Map { dimensions, tiles, player_position };
+        let map = Map {
+            dimensions,
+            tiles,
+            player_position,
+        };
 
         let player_stats = {
             let mut stats = lines.next().unwrap().split_ascii_whitespace();

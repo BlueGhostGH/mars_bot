@@ -23,7 +23,7 @@ impl Into<char> for Direction {
 
 #[derive(Debug, Clone, Copy)]
 pub struct Moves {
-    mvs: [Option<Direction>; 3],
+    pub mvs: [Option<Direction>; 3],
 }
 
 #[derive(Debug, Clone, Copy)]
