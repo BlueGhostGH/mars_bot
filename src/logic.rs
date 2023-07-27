@@ -91,17 +91,59 @@ impl GameState {
             .flatten()
             .enumerate()
             .find_map(|(i, entry)| match entry.tile {
-                Tile::Player { .. } => Some(CachedPlayer {
-                    up_to_date: true,
-                    position: ShittyPosition {
+                Tile::Player { .. } => {
+                    let new_position = ShittyPosition {
                         x: (i / input.map.dimensions.height as usize) as i8,
                         y: (i % input.map.dimensions.height as usize) as i8,
-                    },
-                    stats: CachedPlayerStats {
-                        gun_level: 1,
-                        wheel_level: 1,
-                    },
-                }),
+                    };
+
+                    let new_gun_level = {
+                        let damage_taken =
+                            self.player_stats.hit_points - input.player_stats.hit_points;
+                        if damage_taken > 0 {
+                            let distance = if self.map.player_position.y == new_position.y {
+                                self.map.player_position.x.abs_diff(new_position.x)
+                            } else {
+                                self.map.player_position.y.abs_diff(new_position.y)
+                            };
+
+                            damage_taken + distance - 1
+                        } else {
+                            self.cached_player
+                                .as_ref()
+                                .map(|enemy| enemy.stats.gun_level)
+                                .unwrap_or(1)
+                        }
+                    };
+
+                    let new_wheel_level = {
+                        if let Some(CachedPlayer {
+                            up_to_date: true,
+                            position,
+                            ..
+                        }) = self.cached_player
+                        {
+                            let manhattan_distance = new_position.x.abs_diff(position.x)
+                                + new_position.y.abs_diff(position.y);
+
+                            manhattan_distance
+                        } else {
+                            self.cached_player
+                                .as_ref()
+                                .map(|enemy| enemy.stats.wheel_level)
+                                .unwrap_or(1)
+                        }
+                    };
+
+                    Some(CachedPlayer {
+                        up_to_date: true,
+                        position: new_position,
+                        stats: CachedPlayerStats {
+                            gun_level: new_gun_level,
+                            wheel_level: new_wheel_level,
+                        },
+                    })
+                }
                 _ => None,
             });
         self.cached_player.as_mut().map(|cached_enemy| match enemy {
