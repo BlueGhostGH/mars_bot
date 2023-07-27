@@ -2,7 +2,7 @@ use std::{dbg, println};
 
 use crate::game::{
     input::{GameInput, Map, PlayerInventory, PlayerStats, ShittyPosition, Tile},
-    output::{Action, GameOutput, Moves, Upgrade, Direction},
+    output::{Action, Direction, GameOutput, Moves, Upgrade},
 };
 
 #[derive(Debug)]
@@ -12,9 +12,13 @@ pub struct GameState {
     pub player_inventory: PlayerInventory,
     pub upgrade_queue_index: usize,
     pub base_position: ShittyPosition,
+    pub turn: usize,
 }
 
 impl GameState {
+    const ACID_START_TURN: usize = 150;
+    const ACID_TICK_RATE: usize = 2;
+
     pub fn process_input(previous: Option<GameState>, input: GameInput) -> Self {
         match previous {
             None => Self::from_input(input),
@@ -33,6 +37,7 @@ impl GameState {
             player_stats: input.player_stats,
             player_inventory: input.player_inventory,
             upgrade_queue_index: 0,
+            turn: 0,
         };
 
         result
@@ -52,6 +57,16 @@ impl GameState {
             .merge_with(&input.map, input.player_stats.wheel_level as usize);
         self.player_stats = input.player_stats;
         self.player_inventory = input.player_inventory;
+        self.turn += 1;
+        self.map.set_acid_level(self.acid_level());
+    }
+
+    fn acid_level(&self) -> usize {
+        if self.turn < Self::ACID_START_TURN {
+            0
+        } else {
+            (self.turn - Self::ACID_START_TURN) / Self::ACID_TICK_RATE
+        }
     }
 
     fn target_upgrade(&self) -> Option<Upgrade> {
@@ -69,7 +84,8 @@ impl GameState {
     }
 
     fn move_towards(&self, to: ShittyPosition) -> (Moves, ShittyPosition, Option<Direction>) {
-        self.map.move_towards(to, self.player_stats.wheel_level as usize)
+        self.map
+            .move_towards(to, self.player_stats.wheel_level as usize)
     }
 
     fn moves(&self) -> (Moves, ShittyPosition, Option<Direction>) {
@@ -115,8 +131,7 @@ impl GameState {
 
         let action = if let Some(direction) = optional_mining_direction {
             Some(Action::Mine { direction })
-        } 
-        else if let Some((direction, _)) = neighbour {
+        } else if let Some((direction, _)) = neighbour {
             Some(Action::Mine { direction })
         } else {
             None

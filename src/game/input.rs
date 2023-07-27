@@ -117,6 +117,23 @@ impl Map {
         self.floodfill(wheel_level);
     }
 
+    pub fn set_acid_level(&mut self, level: usize) {
+        let level = level as i8;
+        let width = self.dimensions.width as i8;
+        let height = self.dimensions.height as i8;
+        for i in 0..level {
+            for j in level..(width - level) {
+                self.set_tile_at(ShittyPosition::new(i, j), Tile::Acid);
+                self.set_tile_at(ShittyPosition::new(height - i - 1, j), Tile::Acid);
+            }
+
+            for j in level..(height - level) {
+                self.set_tile_at(ShittyPosition::new(level + j, i), Tile::Acid);
+                self.set_tile_at(ShittyPosition::new(level + j, width - i - 1), Tile::Acid);
+            }
+        }
+    }
+
     pub fn find_tiles(&self, target: Tile) -> Vec<ShittyPosition> {
         self.tiles
             .iter()
