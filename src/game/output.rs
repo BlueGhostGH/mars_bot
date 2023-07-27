@@ -26,6 +26,10 @@ pub struct Moves {
     pub mvs: [Option<Direction>; 3],
 }
 
+impl Moves {
+    pub fn new(mvs: [Option<Direction>; 3]) -> Self { Self { mvs } }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub enum Action {
     Attack { direction: Direction },

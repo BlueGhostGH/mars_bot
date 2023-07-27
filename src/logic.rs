@@ -2,7 +2,7 @@ use std::{dbg, println};
 
 use crate::game::{
     input::{GameInput, Map, PlayerInventory, PlayerStats, ShittyPosition, Tile},
-    output::{Action, GameOutput, Moves, Upgrade},
+    output::{Action, GameOutput, Moves, Upgrade, Direction},
 };
 
 #[derive(Debug)]
@@ -26,6 +26,7 @@ impl GameState {
     }
 
     fn from_input(input: GameInput) -> Self {
+        dbg!(input.player_stats.wheel_level);
         let mut result = Self {
             base_position: input.map.player_position,
             map: input.map,
@@ -38,13 +39,17 @@ impl GameState {
             .map
             .set_tile_at(result.map.player_position, Tile::Air);
 
-        result.map.floodfill();
+        result
+            .map
+            .floodfill(result.player_stats.wheel_level as usize);
 
         result
     }
 
     fn feed_input(&mut self, input: GameInput) {
-        self.map.merge_with(&input.map);
+        dbg!(input.player_stats.wheel_level);
+        self.map
+            .merge_with(&input.map, input.player_stats.wheel_level as usize);
         self.player_stats = input.player_stats;
         self.player_inventory = input.player_inventory;
     }
@@ -63,11 +68,11 @@ impl GameState {
         position == self.base_position || self.player_stats.has_battery
     }
 
-    fn move_towards(&self, to: ShittyPosition) -> (Moves, ShittyPosition) {
-        self.map.move_towards(to, self.player_stats.wheel_level)
+    fn move_towards(&self, to: ShittyPosition) -> (Moves, ShittyPosition, Option<Direction>) {
+        self.map.move_towards(to, self.player_stats.wheel_level as usize)
     }
 
-    fn moves(&self) -> (Moves, ShittyPosition) {
+    fn moves(&self) -> (Moves, ShittyPosition, Option<Direction>) {
         match self.target_upgrade() {
             Some(target_upgrade)
                 if self
@@ -101,23 +106,21 @@ impl GameState {
     }
 
     pub fn magic(&mut self) -> GameOutput {
-        let (moves, new_position) = self.moves();
+        let (moves, new_position, optional_mining_direction) = self.moves();
         let neighbour = self
             .map
             .find_neighbour(new_position, Tile::Osmium)
             .or_else(|| self.map.find_neighbour(new_position, Tile::Iron))
             .or_else(|| self.map.find_neighbour(new_position, Tile::Stone));
 
-        let action = if let Some((direction, _)) = neighbour {
+        let action = if let Some(direction) = optional_mining_direction {
+            Some(Action::Mine { direction })
+        } 
+        else if let Some((direction, _)) = neighbour {
             Some(Action::Mine { direction })
         } else {
             None
         };
-
-        dbg!(self.can_upgrade(new_position));
-        dbg!(self
-            .player_inventory
-            .can_afford(self.target_upgrade().unwrap().cost(self.player_stats)));
 
         let upgrade = match self.target_upgrade() {
             Some(target_upgrade)
@@ -126,7 +129,6 @@ impl GameState {
                     .can_afford(target_upgrade.cost(self.player_stats))
                     && self.can_upgrade(new_position) =>
             {
-                dbg!(target_upgrade);
                 if target_upgrade != Upgrade::Heal {
                     self.upgrade_queue_index += 1;
                 }

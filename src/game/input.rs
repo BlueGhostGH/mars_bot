@@ -1,5 +1,8 @@
 use super::output::{Direction, Moves};
-use std::{collections::HashSet, todo};
+use std::{
+    collections::{HashSet, VecDeque},
+    dbg,
+};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Dimensions {
@@ -36,10 +39,38 @@ impl Tile {
 }
 
 #[derive(Debug, Clone, Copy)]
+pub struct ParentInfo {
+    // The move to make to reach this position from the parent
+    direction: Direction,
+    // The location of the parent
+    location: ShittyPosition,
+    // Whether this block requires to be mined
+    requires_mining: bool,
+}
+
+impl ParentInfo {
+    pub fn new(
+        direction: Direction,
+        parent_location: ShittyPosition,
+        requires_mining: bool,
+    ) -> Self {
+        Self {
+            direction,
+            location: parent_location,
+            requires_mining,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
 pub struct MapEntry {
     pub distance: usize,
-    pub parent: Option<(Direction, ShittyPosition)>,
+    pub parent: Option<ParentInfo>,
     pub tile: Tile,
+
+    // if we have n moves per turn, this represents the index of the
+    // move planned for this tile
+    pub per_turn_move_index: usize,
 }
 
 impl MapEntry {
@@ -56,6 +87,7 @@ impl Default for MapEntry {
             distance: usize::MAX,
             parent: None,
             tile: Tile::Unknown,
+            per_turn_move_index: 0,
         }
     }
 }
@@ -68,7 +100,7 @@ pub struct Map {
 }
 
 impl Map {
-    pub fn merge_with(&mut self, other: &Map) {
+    pub fn merge_with(&mut self, other: &Map, wheel_level: usize) {
         for i in 0..self.dimensions.width.into() {
             for j in 0..self.dimensions.height.into() {
                 if self.tiles[i][j].tile != other.tiles[i][j].tile
@@ -81,7 +113,7 @@ impl Map {
         }
 
         self.player_position = other.player_position;
-        self.floodfill();
+        self.floodfill(wheel_level);
     }
 
     pub fn find_tiles(&self, target: Tile) -> Vec<ShittyPosition> {
@@ -120,31 +152,61 @@ impl Map {
             .copied()
     }
 
-    pub fn move_towards(&self, to: ShittyPosition, wheel_level: u8) -> (Moves, ShittyPosition) {
+    /// Returns:
+    /// - The moves to perform
+    /// - The location reached by performing said moves
+    /// - An optional mining operation which might be required at the end of the turn
+    pub fn move_towards(
+        &self,
+        to: ShittyPosition,
+        wheel_level: usize,
+    ) -> (Moves, ShittyPosition, Option<Direction>) {
         let mut location = to;
-        let mut moves: [Option<(Direction, ShittyPosition)>; 3] = [None; 3];
-        let mut move_count = 0;
+        // Pairs containing `per_turn_move_index` and `ParentInfo`.
+        let mut moves: VecDeque<(usize, ParentInfo)> = VecDeque::new();
+        let mut mininig_direction = None;
 
         while location != self.player_position {
-            moves.rotate_right(1);
             let entry = self.tile_at(location).unwrap();
             let parent = entry.parent.unwrap();
-            moves[0] = Some((parent.0, location));
-            location = parent.1;
-            if move_count < 3 {
-                move_count += 1;
+
+            dbg!(entry);
+
+            if let Some((0, first_move)) = moves.get(0).copied() {
+                moves.clear();
+                mininig_direction = if first_move.requires_mining {
+                    Some(first_move.direction)
+                } else {
+                    None
+                };
+            }
+
+            moves.push_front((
+                entry.per_turn_move_index,
+                ParentInfo::new(parent.direction, location, parent.requires_mining),
+            ));
+
+            location = parent.location;
+
+            if moves.len() > wheel_level {
+                moves.pop_back();
             }
         }
 
-        for i in move_count..3 {
-            moves[i as usize] = None;
+        let mut final_moves = [None; 3];
+
+        for i in 0..moves.len() {
+            final_moves[i] = Some(moves[i].1.direction);
         }
 
-        let final_moves = Moves {
-            mvs: moves.map(|e| e.map(|(d, _)| d)),
-        };
+        dbg!(wheel_level);
+        dbg!(&moves);
 
-        (final_moves, moves[(move_count - 1) as usize].unwrap().1)
+        (
+            Moves::new(final_moves),
+            moves[moves.len() - 1].1.location,
+            mininig_direction,
+        )
     }
 
     pub fn tile_at(&self, position: ShittyPosition) -> Option<MapEntry> {
@@ -179,7 +241,7 @@ impl Map {
         ]
     }
 
-    pub fn floodfill(&mut self) {
+    pub fn floodfill(&mut self, wheel_level: usize) {
         let mut queue: HashSet<ShittyPosition> = HashSet::new();
 
         for x in 0..self.dimensions.width {
@@ -188,6 +250,8 @@ impl Map {
                 queue.insert(position);
                 let entry = self.tile_at_mut(position).unwrap();
                 entry.distance = usize::MAX / 2;
+                entry.per_turn_move_index = 0;
+                entry.parent = None;
             }
         }
 
@@ -203,27 +267,40 @@ impl Map {
 
             queue.remove(&min_position);
 
-            let dist_to_min = self.tile_at(min_position).unwrap().distance;
+            let min_entry = self.tile_at(min_position).unwrap();
 
             // TODO: handle multiple wheels
             for (direction, neighbour) in self.neighbours(min_position) {
                 if queue.contains(&neighbour) {
                     let entry = self.tile_at_mut(neighbour).unwrap();
-                    let weight = match entry.tile {
-                        Tile::Osmium => Some(1),
-                        Tile::Iron => Some(4),
-                        Tile::Stone | Tile::Cobblestone => Some(8),
-                        Tile::Unknown => Some(6),
-                        Tile::Bedrock => None,
-                        Tile::Acid => None,
-                        _ => Some(5),
+                    let per_turn_move_index = (min_entry.per_turn_move_index + 1) % wheel_level;
+
+                    let tile_info = match entry.tile {
+                        Tile::Osmium => Some((1, true)),
+                        Tile::Iron => Some((4, true)),
+                        Tile::Stone | Tile::Cobblestone => Some((8, true)),
+                        Tile::Unknown => Some((6, false)),
+                        Tile::Air | Tile::Base => Some((5, false)),
+                        _ => None,
                     };
 
-                    if let Some(weight) = weight {
-                        let alt = dist_to_min + weight;
+                    if let Some((weight, requires_mining)) = tile_info {
+                        let alt = min_entry.distance
+                            + if requires_mining && per_turn_move_index == 0 {
+                                5
+                            } else {
+                                weight
+                            };
+
                         if alt < entry.distance {
+                            entry.per_turn_move_index = if requires_mining {
+                                0
+                            } else {
+                                per_turn_move_index
+                            };
                             entry.distance = alt;
-                            entry.parent = Some((direction, min_position));
+                            entry.parent =
+                                Some(ParentInfo::new(direction, min_position, requires_mining));
                         }
                     }
                 };
