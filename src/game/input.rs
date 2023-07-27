@@ -331,7 +331,7 @@ impl Map {
                     let first_move = min_entry.parent.is_none();
 
                     let tile_info = match entry.tile {
-                        _ if Some(neighbour) == opponent => None,
+                        _ if Some(neighbour) == opponent => Some((30, false)),
                         Tile::Osmium => Some((2, true)),
                         Tile::Iron => Some((4, true)),
                         Tile::Stone | Tile::Cobblestone => Some((8, true)),
