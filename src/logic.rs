@@ -1,13 +1,26 @@
-use std::{dbg, println};
-
 use crate::game::{
     input::{GameInput, Map, PlayerInventory, PlayerStats, ShittyPosition, Tile},
-    output::{Action, GameOutput, Moves, Upgrade, Direction},
+    output::{Action, Direction, GameOutput, Moves, Upgrade},
 };
+
+#[derive(Debug)]
+struct CachedPlayerStats {
+    pub gun_level: u8,
+    pub wheel_level: u8,
+}
+
+#[derive(Debug)]
+pub struct CachedPlayer {
+    id: u8,
+    up_to_date: bool,
+    position: ShittyPosition,
+    stats: CachedPlayerStats,
+}
 
 #[derive(Debug)]
 pub struct GameState {
     pub map: Map,
+    pub cached_players: Vec<CachedPlayer>,
     pub player_stats: PlayerStats,
     pub player_inventory: PlayerInventory,
     pub upgrade_queue_index: usize,
@@ -27,9 +40,33 @@ impl GameState {
 
     fn from_input(input: GameInput) -> Self {
         dbg!(input.player_stats.wheel_level);
+        let players = input
+            .map
+            .tiles
+            .iter()
+            .map(|column| column.iter())
+            .flatten()
+            .enumerate()
+            .filter_map(|(i, entry)| match entry.tile {
+                Tile::Player { id } => Some(CachedPlayer {
+                    id,
+                    up_to_date: true,
+                    position: ShittyPosition {
+                        x: (i / input.map.dimensions.height as usize) as i8,
+                        y: (i % input.map.dimensions.height as usize) as i8,
+                    },
+                    stats: CachedPlayerStats {
+                        gun_level: 1,
+                        wheel_level: 1,
+                    },
+                }),
+                _ => None,
+            })
+            .collect();
         let mut result = Self {
             base_position: input.map.player_position,
             map: input.map,
+            cached_players: players,
             player_stats: input.player_stats,
             player_inventory: input.player_inventory,
             upgrade_queue_index: 0,
@@ -69,7 +106,8 @@ impl GameState {
     }
 
     fn move_towards(&self, to: ShittyPosition) -> (Moves, ShittyPosition, Option<Direction>) {
-        self.map.move_towards(to, self.player_stats.wheel_level as usize)
+        self.map
+            .move_towards(to, self.player_stats.wheel_level as usize)
     }
 
     fn moves(&self) -> (Moves, ShittyPosition, Option<Direction>) {
@@ -115,8 +153,7 @@ impl GameState {
 
         let action = if let Some(direction) = optional_mining_direction {
             Some(Action::Mine { direction })
-        } 
-        else if let Some((direction, _)) = neighbour {
+        } else if let Some((direction, _)) = neighbour {
             Some(Action::Mine { direction })
         } else {
             None
