@@ -1,5 +1,4 @@
 #![feature(fs_try_exists)]
-use std::{dbg, println};
 
 use mars_bot::logic::GameState;
 

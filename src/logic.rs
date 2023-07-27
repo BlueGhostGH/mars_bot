@@ -338,8 +338,122 @@ impl GameState {
     }
 
     pub fn magic(&mut self) -> GameOutput {
-        let (moves, new_position, optional_mining_direction) = self.moves();
+        let mut run_away = None;
+        let attack = if let (
+            Some(CachedPlayer {
+                up_to_date: true,
+                position,
+                stats:
+                    CachedPlayerStats {
+                        gun_level: enemy_gun_level,
+                        ..
+                    },
+            }),
+            true,
+        ) = (&self.cached_player, self.cage_step != 4)
+        {
+            let GameState {
+                map: Map {
+                    player_position, ..
+                },
+                player_stats: PlayerStats { gun_level, .. },
+                ..
+            } = *self;
 
+            let mut free_neighbours = self.map.find_neighbours(player_position, Tile::Air);
+            free_neighbours.extend(self.map.find_neighbours(player_position, Tile::Base));
+            let neighbours = self.map.neighbours(player_position);
+            let enemy_around = neighbours.iter().find(|&&(_, neighbour)| {
+                matches!(
+                    self.map.tile_at(neighbour).map(|entry| entry.tile),
+                    Some(Tile::Player { .. })
+                )
+            });
+
+            match enemy_around.copied() {
+                Some((direction, _)) if free_neighbours.len() == 0 => {
+                    Some(Action::Attack { direction })
+                }
+                Some((direction, _)) => {
+                    let move_direction = match direction {
+                        Direction::Right => Direction::Left,
+                        Direction::Up => Direction::Down,
+                        Direction::Left => Direction::Right,
+                        Direction::Down => Direction::Up,
+                    };
+
+                    run_away = Some(move_direction);
+                    Some(Action::Place { direction })
+                }
+                _ => {
+                    let distance_and_direction = if player_position.x == position.x {
+                        Some((
+                            player_position.y.abs_diff(position.y),
+                            if player_position.y > position.y {
+                                Direction::Up
+                            } else {
+                                Direction::Down
+                            },
+                        ))
+                    } else if player_position.y == position.y {
+                        Some((
+                            player_position.x.abs_diff(position.x),
+                            if player_position.x > position.x {
+                                Direction::Right
+                            } else {
+                                Direction::Left
+                            },
+                        ))
+                    } else {
+                        None
+                    };
+
+                    match distance_and_direction {
+                        Some((distance, direction))
+                            if distance <= gun_level && gun_level > *enemy_gun_level =>
+                        {
+                            Some(Action::Attack { direction })
+                        }
+                        _ => None,
+                    }
+                }
+            }
+        } else {
+            None
+        };
+
+        let (moves, new_position, optional_mining_direction) = match run_away {
+            Some(direction) if self.cage_step != 4 => (
+                Moves {
+                    mvs: ::std::iter::once(Some(direction))
+                        .cycle()
+                        .take(self.player_stats.wheel_level as usize)
+                        .chain(
+                            ::std::iter::once(None)
+                                .take(3 - self.player_stats.wheel_level as usize),
+                        )
+                        .collect::<Vec<_>>()
+                        .try_into()
+                        .unwrap(),
+                },
+                ShittyPosition {
+                    x: self.map.player_position.x
+                        + match direction {
+                            Direction::Right => self.player_stats.wheel_level as i8,
+                            Direction::Left => -(self.player_stats.wheel_level as i8),
+                            _ => 0,
+                        },
+                    y: self.map.player_position.y
+                        + match direction {
+                            Direction::Down => self.player_stats.wheel_level as i8,
+                            Direction::Up => -(self.player_stats.wheel_level as i8),
+                            _ => 0,
+                        },
+                },
+                self.moves().2,
+            ),
+            _ => self.moves(),
+        };
         let neighbour = self
             .map
             .find_neighbour(new_position, Tile::Osmium)
@@ -408,6 +522,8 @@ impl GameState {
                     None
                 }
             }
+        } else if let Some(_) = attack {
+            attack
         } else if let Some(direction) = optional_mining_direction {
             Some(Action::Mine { direction })
         } else if let Some((direction, _)) = neighbour {
