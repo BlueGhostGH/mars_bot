@@ -11,7 +11,6 @@ struct CachedPlayerStats {
 
 #[derive(Debug)]
 pub struct CachedPlayer {
-    id: u8,
     up_to_date: bool,
     position: ShittyPosition,
     stats: CachedPlayerStats,
@@ -20,7 +19,7 @@ pub struct CachedPlayer {
 #[derive(Debug)]
 pub struct GameState {
     pub map: Map,
-    pub cached_players: Vec<CachedPlayer>,
+    pub cached_player: Option<CachedPlayer>,
     pub player_stats: PlayerStats,
     pub player_inventory: PlayerInventory,
     pub upgrade_queue_index: usize,
@@ -40,16 +39,15 @@ impl GameState {
 
     fn from_input(input: GameInput) -> Self {
         dbg!(input.player_stats.wheel_level);
-        let players = input
+        let enemy = input
             .map
             .tiles
             .iter()
             .map(|column| column.iter())
             .flatten()
             .enumerate()
-            .filter_map(|(i, entry)| match entry.tile {
-                Tile::Player { id } => Some(CachedPlayer {
-                    id,
+            .find_map(|(i, entry)| match entry.tile {
+                Tile::Player { .. } => Some(CachedPlayer {
                     up_to_date: true,
                     position: ShittyPosition {
                         x: (i / input.map.dimensions.height as usize) as i8,
@@ -61,12 +59,11 @@ impl GameState {
                     },
                 }),
                 _ => None,
-            })
-            .collect();
+            });
         let mut result = Self {
             base_position: input.map.player_position,
             map: input.map,
-            cached_players: players,
+            cached_player: enemy,
             player_stats: input.player_stats,
             player_inventory: input.player_inventory,
             upgrade_queue_index: 0,
@@ -85,6 +82,33 @@ impl GameState {
 
     fn feed_input(&mut self, input: GameInput) {
         dbg!(input.player_stats.wheel_level);
+
+        let enemy = input
+            .map
+            .tiles
+            .iter()
+            .map(|column| column.iter())
+            .flatten()
+            .enumerate()
+            .find_map(|(i, entry)| match entry.tile {
+                Tile::Player { .. } => Some(CachedPlayer {
+                    up_to_date: true,
+                    position: ShittyPosition {
+                        x: (i / input.map.dimensions.height as usize) as i8,
+                        y: (i % input.map.dimensions.height as usize) as i8,
+                    },
+                    stats: CachedPlayerStats {
+                        gun_level: 1,
+                        wheel_level: 1,
+                    },
+                }),
+                _ => None,
+            });
+        self.cached_player.as_mut().map(|cached_enemy| match enemy {
+            Some(new_enemy) => *cached_enemy = new_enemy,
+            None => cached_enemy.up_to_date = false,
+        });
+
         self.map
             .merge_with(&input.map, input.player_stats.wheel_level as usize);
         self.player_stats = input.player_stats;
