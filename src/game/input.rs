@@ -123,18 +123,20 @@ impl Map {
     pub fn move_towards(&self, to: ShittyPosition, wheel_level: u8) -> (Moves, ShittyPosition) {
         let mut location = to;
         let mut moves: [Option<(Direction, ShittyPosition)>; 3] = [None; 3];
+        let mut move_count = 0;
 
         while location != self.player_position {
             moves.rotate_right(1);
             let entry = self.tile_at(location).unwrap();
-            dbg!(entry);
-            dbg!(to);
             let parent = entry.parent.unwrap();
             moves[0] = Some((parent.0, location));
-            location = parent.1
+            location = parent.1;
+            if move_count < 3 {
+                move_count += 1;
+            }
         }
 
-        for i in wheel_level..3 {
+        for i in move_count..3 {
             moves[i as usize] = None;
         }
 
@@ -142,7 +144,7 @@ impl Map {
             mvs: moves.map(|e| e.map(|(d, _)| d)),
         };
 
-        (final_moves, moves[(wheel_level - 1) as usize].unwrap().1)
+        (final_moves, moves[(move_count - 1) as usize].unwrap().1)
     }
 
     pub fn tile_at(&self, position: ShittyPosition) -> Option<MapEntry> {

@@ -114,6 +114,11 @@ impl GameState {
             None
         };
 
+        dbg!(self.can_upgrade(new_position));
+        dbg!(self
+            .player_inventory
+            .can_afford(self.target_upgrade().unwrap().cost(self.player_stats)));
+
         let upgrade = match self.target_upgrade() {
             Some(target_upgrade)
                 if self
@@ -121,6 +126,7 @@ impl GameState {
                     .can_afford(target_upgrade.cost(self.player_stats))
                     && self.can_upgrade(new_position) =>
             {
+                dbg!(target_upgrade);
                 if target_upgrade != Upgrade::Heal {
                     self.upgrade_queue_index += 1;
                 }

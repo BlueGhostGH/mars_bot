@@ -78,13 +78,13 @@ impl Upgrade {
 
     pub const UPGRADE_QUEUE: [Upgrade; 10] = [
         Upgrade::Battery,
+        Upgrade::Sight,
+        Upgrade::Movement,
+        Upgrade::Attack,
         Upgrade::Movement,
         Upgrade::Sight,
+        Upgrade::Attack,
         Upgrade::Drill,
-        Upgrade::Attack,
-        Upgrade::Movement,
-        Upgrade::Sight,
-        Upgrade::Attack,
         Upgrade::Drill,
         Upgrade::Radar,
     ];
