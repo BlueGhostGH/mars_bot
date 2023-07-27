@@ -46,6 +46,10 @@ pub struct ParentInfo {
     location: ShittyPosition,
     // Whether this block requires to be mined
     requires_mining: bool,
+
+    // if we have n moves per turn, this represents the index of the
+    // move planned to reach this tile.
+    pub per_turn_move_index: usize,
 }
 
 impl ParentInfo {
@@ -53,11 +57,13 @@ impl ParentInfo {
         direction: Direction,
         parent_location: ShittyPosition,
         requires_mining: bool,
+        per_turn_move_index: usize,
     ) -> Self {
         Self {
             direction,
             location: parent_location,
             requires_mining,
+            per_turn_move_index,
         }
     }
 }
@@ -67,10 +73,6 @@ pub struct MapEntry {
     pub distance: usize,
     pub parent: Option<ParentInfo>,
     pub tile: Tile,
-
-    // if we have n moves per turn, this represents the index of the
-    // move planned for this tile
-    pub per_turn_move_index: usize,
 }
 
 impl MapEntry {
@@ -87,7 +89,6 @@ impl Default for MapEntry {
             distance: usize::MAX,
             parent: None,
             tile: Tile::Unknown,
-            per_turn_move_index: 0,
         }
     }
 }
@@ -163,7 +164,7 @@ impl Map {
     ) -> (Moves, ShittyPosition, Option<Direction>) {
         let mut location = to;
         // Pairs containing `per_turn_move_index` and `ParentInfo`.
-        let mut moves: VecDeque<(usize, ParentInfo)> = VecDeque::new();
+        let mut moves: VecDeque<ParentInfo> = VecDeque::new();
         let mut mininig_direction = None;
 
         while location != self.player_position {
@@ -172,18 +173,22 @@ impl Map {
 
             dbg!(entry);
 
-            if let Some((0, first_move)) = moves.get(0).copied() {
-                moves.clear();
-                mininig_direction = if first_move.requires_mining {
-                    Some(first_move.direction)
-                } else {
-                    None
+            if let Some(first_move) = moves.get(0).copied() {
+                if first_move.per_turn_move_index == 0 {
+                    moves.clear();
+                    mininig_direction = if first_move.requires_mining {
+                        Some(first_move.direction)
+                    } else {
+                        None
+                    };
                 };
             }
 
-            moves.push_front((
-                entry.per_turn_move_index,
-                ParentInfo::new(parent.direction, location, parent.requires_mining),
+            moves.push_front(ParentInfo::new(
+                parent.direction,
+                location,
+                parent.requires_mining,
+                parent.per_turn_move_index,
             ));
 
             location = parent.location;
@@ -196,7 +201,7 @@ impl Map {
         let mut final_moves = [None; 3];
 
         for i in 0..moves.len() {
-            final_moves[i] = Some(moves[i].1.direction);
+            final_moves[i] = Some(moves[i].direction);
         }
 
         dbg!(wheel_level);
@@ -204,7 +209,7 @@ impl Map {
 
         (
             Moves::new(final_moves),
-            moves[moves.len() - 1].1.location,
+            moves[moves.len() - 1].location,
             mininig_direction,
         )
     }
@@ -250,7 +255,6 @@ impl Map {
                 queue.insert(position);
                 let entry = self.tile_at_mut(position).unwrap();
                 entry.distance = usize::MAX / 2;
-                entry.per_turn_move_index = 0;
                 entry.parent = None;
             }
         }
@@ -273,10 +277,14 @@ impl Map {
             for (direction, neighbour) in self.neighbours(min_position) {
                 if queue.contains(&neighbour) {
                     let entry = self.tile_at_mut(neighbour).unwrap();
-                    let per_turn_move_index = (min_entry.per_turn_move_index + 1) % wheel_level;
+                    let per_turn_move_index = min_entry
+                        .parent
+                        .map_or(0, |p| (p.per_turn_move_index + 1) % wheel_level);
+
+                    let first_move = min_entry.parent.is_none();
 
                     let tile_info = match entry.tile {
-                        Tile::Osmium => Some((1, true)),
+                        Tile::Osmium => Some((2, true)),
                         Tile::Iron => Some((4, true)),
                         Tile::Stone | Tile::Cobblestone => Some((8, true)),
                         Tile::Unknown => Some((6, false)),
@@ -286,21 +294,26 @@ impl Map {
 
                     if let Some((weight, requires_mining)) = tile_info {
                         let alt = min_entry.distance
-                            + if requires_mining && per_turn_move_index == 0 {
-                                5
+                            + if requires_mining && first_move {
+                                1000
+                            } else if requires_mining && per_turn_move_index == 0 {
+                                1
                             } else {
                                 weight
                             };
 
                         if alt < entry.distance {
-                            entry.per_turn_move_index = if requires_mining {
-                                0
-                            } else {
-                                per_turn_move_index
-                            };
                             entry.distance = alt;
-                            entry.parent =
-                                Some(ParentInfo::new(direction, min_position, requires_mining));
+                            entry.parent = Some(ParentInfo::new(
+                                direction,
+                                min_position,
+                                requires_mining,
+                                if requires_mining {
+                                    0
+                                } else {
+                                    per_turn_move_index
+                                },
+                            ));
                         }
                     }
                 };
