@@ -1,3 +1,5 @@
+use std::{println, dbg};
+
 use crate::game::{
     input::{GameInput, Map, PlayerInventory, PlayerStats, ShittyPosition, Tile},
     output::{Action, Direction, GameOutput, Moves, Upgrade},
@@ -28,7 +30,7 @@ pub struct GameState {
 }
 
 impl GameState {
-    const ACID_START_TURN: usize = 150;
+    const ACID_START_TURN: usize = 4;
     const ACID_TICK_RATE: usize = 2;
 
     pub fn process_input(previous: Option<GameState>, input: GameInput) -> Self {
@@ -42,7 +44,6 @@ impl GameState {
     }
 
     fn from_input(input: GameInput) -> Self {
-        dbg!(input.player_stats.wheel_level);
         let enemy = input
             .map
             .tiles
@@ -86,8 +87,6 @@ impl GameState {
     }
 
     fn feed_input(&mut self, input: GameInput) {
-        dbg!(input.player_stats.wheel_level);
-
         let enemy = input
             .map
             .tiles
@@ -119,6 +118,7 @@ impl GameState {
         self.player_stats = input.player_stats;
         self.player_inventory = input.player_inventory;
         self.turn += 1;
+        dbg!(self.acid_level());
         self.map.set_acid_level(self.acid_level());
     }
 
@@ -126,7 +126,7 @@ impl GameState {
         if self.turn < Self::ACID_START_TURN {
             0
         } else {
-            (self.turn - Self::ACID_START_TURN) / Self::ACID_TICK_RATE
+            (self.turn - Self::ACID_START_TURN) / Self::ACID_TICK_RATE + 1
         }
     }
 
@@ -213,6 +213,9 @@ impl GameState {
             }
             _ => None,
         };
+
+        println!("{}", &self.map);
+        println!("{:?}", &self.map.dimensions);
 
         GameOutput {
             moves: Some(moves),

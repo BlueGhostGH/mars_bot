@@ -1,7 +1,7 @@
 use super::output::{Direction, Moves};
 use std::{
     collections::{HashSet, VecDeque},
-    dbg,
+    fmt::Display,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -100,6 +100,31 @@ pub struct Map {
     pub player_position: ShittyPosition,
 }
 
+impl Display for Map {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for i in 0..self.dimensions.width {
+            for j in 0..self.dimensions.height {
+                let position = ShittyPosition::new(i as i8, j as i8);
+                let char = match self.tile_at(position).unwrap().tile {
+                    _ if self.player_position == position => '*',
+                    Tile::Acid => 'A',
+                    Tile::Iron => 'I',
+                    Tile::Unknown => '?',
+                    Tile::Osmium => 'O',
+                    Tile::Stone => 'S',
+                    Tile::Cobblestone => 'C',
+                    Tile::Air => ' ',
+                    Tile::Bedrock => 'B',
+                    _ => '_',
+                };
+                write!(f, "{char}")?;
+            }
+            write!(f, "\n")?;
+        }
+        Ok(())
+    }
+}
+
 impl Map {
     pub fn merge_with(&mut self, other: &Map, wheel_level: usize) {
         for i in 0..self.dimensions.width.into() {
@@ -122,14 +147,14 @@ impl Map {
         let width = self.dimensions.width as i8;
         let height = self.dimensions.height as i8;
         for i in 0..level {
-            for j in level..(width - level) {
+            for j in i..(height - i) {
                 self.set_tile_at(ShittyPosition::new(i, j), Tile::Acid);
-                self.set_tile_at(ShittyPosition::new(height - i - 1, j), Tile::Acid);
+                self.set_tile_at(ShittyPosition::new(width - i - 1, j), Tile::Acid);
             }
 
-            for j in level..(height - level) {
-                self.set_tile_at(ShittyPosition::new(level + j, i), Tile::Acid);
-                self.set_tile_at(ShittyPosition::new(level + j, width - i - 1), Tile::Acid);
+            for j in i..(width - i) {
+                self.set_tile_at(ShittyPosition::new(j, i), Tile::Acid);
+                self.set_tile_at(ShittyPosition::new(j, height - i - 1), Tile::Acid);
             }
         }
     }
@@ -188,8 +213,6 @@ impl Map {
             let entry = self.tile_at(location).unwrap();
             let parent = entry.parent.unwrap();
 
-            dbg!(entry);
-
             if let Some(first_move) = moves.get(0).copied() {
                 if first_move.per_turn_move_index == 0 {
                     moves.clear();
@@ -220,9 +243,6 @@ impl Map {
         for i in 0..moves.len() {
             final_moves[i] = Some(moves[i].direction);
         }
-
-        dbg!(wheel_level);
-        dbg!(&moves);
 
         (
             Moves::new(final_moves),

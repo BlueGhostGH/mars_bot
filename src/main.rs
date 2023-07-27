@@ -34,7 +34,7 @@ fn main() {
             let output = new_state.magic();
             state = Some(new_state);
 
-            dbg!(output);
+            // dbg!(output);
 
             ::std::fs::write(
                 format!("{}/c{id}_{round}.txt", ::std::env::args().nth(1).unwrap()),
