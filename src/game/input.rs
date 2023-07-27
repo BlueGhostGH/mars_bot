@@ -6,8 +6,8 @@ use std::{
 
 #[derive(Debug, Clone, Copy)]
 pub struct Dimensions {
-    width: u8,
-    height: u8,
+    pub width: u8,
+    pub height: u8,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
