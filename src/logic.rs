@@ -427,7 +427,7 @@ impl GameState {
         };
 
         let (moves, new_position, optional_mining_direction) = match run_away {
-            Some(direction) if self.cage_step != 4 && self.acid_level() > 0 => {
+            Some(direction) if self.cage_step != 4 && self.acid_level() == 0 => {
                 self.move_towards(ShittyPosition {
                     x: self.map.player_position.x
                         + match direction {
