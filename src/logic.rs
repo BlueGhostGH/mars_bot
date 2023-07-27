@@ -32,7 +32,7 @@ pub struct GameState {
 }
 
 impl GameState {
-    const ACID_START_TURN: usize = 4;
+    const ACID_START_TURN: usize = 150;
     const ACID_TICK_RATE: usize = 2;
 
     pub fn process_input(previous: Option<GameState>, input: GameInput) -> Self {
@@ -224,6 +224,8 @@ impl GameState {
             if closest == self.map.player_position && self.final_phase_entryway.is_none() {
                 println!("SETTING CENTER ENTRYWAY!!!");
                 self.final_phase_entryway = Some((direction_from_center, closest));
+                self.map
+                    .set_acid_level((self.map.dimensions.width as usize - 3) / 2);
             }
 
             if let Some((direction_from_center, closest)) = self.final_phase_entryway {
@@ -423,35 +425,49 @@ impl GameState {
         };
 
         let (moves, new_position, optional_mining_direction) = match run_away {
-            Some(direction) if self.cage_step != 4 => (
-                Moves {
-                    mvs: ::std::iter::once(Some(direction))
-                        .cycle()
-                        .take(self.player_stats.wheel_level as usize)
-                        .chain(
-                            ::std::iter::once(None)
-                                .take(3 - self.player_stats.wheel_level as usize),
-                        )
-                        .collect::<Vec<_>>()
-                        .try_into()
-                        .unwrap(),
-                },
-                ShittyPosition {
-                    x: self.map.player_position.x
-                        + match direction {
-                            Direction::Right => self.player_stats.wheel_level as i8,
-                            Direction::Left => -(self.player_stats.wheel_level as i8),
-                            _ => 0,
-                        },
-                    y: self.map.player_position.y
-                        + match direction {
-                            Direction::Down => self.player_stats.wheel_level as i8,
-                            Direction::Up => -(self.player_stats.wheel_level as i8),
-                            _ => 0,
-                        },
-                },
-                self.moves().2,
-            ),
+            Some(direction) if self.cage_step != 4 => self.move_towards(ShittyPosition {
+                x: self.map.player_position.x
+                    + match direction {
+                        Direction::Right => 3,
+                        Direction::Left => -3,
+                        _ => 0,
+                    },
+                y: self.map.player_position.y
+                    + match direction {
+                        Direction::Up => -3,
+                        Direction::Down => 3,
+                        _ => 0,
+                    },
+            }),
+            // (
+            //     Moves {
+            //         mvs: ::std::iter::once(Some(direction))
+            //             .cycle()
+            //             .take(self.player_stats.wheel_level as usize)
+            //             .chain(
+            //                 ::std::iter::once(None)
+            //                     .take(3 - self.player_stats.wheel_level as usize),
+            //             )
+            //             .collect::<Vec<_>>()
+            //             .try_into()
+            //             .unwrap(),
+            //     },
+            //     ShittyPosition {
+            //         x: self.map.player_position.x
+            //             + match direction {
+            //                 Direction::Right => self.player_stats.wheel_level as i8,
+            //                 Direction::Left => -(self.player_stats.wheel_level as i8),
+            //                 _ => 0,
+            //             },
+            //         y: self.map.player_position.y
+            //             + match direction {
+            //                 Direction::Down => self.player_stats.wheel_level as i8,
+            //                 Direction::Up => -(self.player_stats.wheel_level as i8),
+            //                 _ => 0,
+            //             },
+            //     },
+            //     self.moves().2,
+            // ),
             _ => self.moves(),
         };
         let neighbour = self
