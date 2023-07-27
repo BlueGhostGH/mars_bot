@@ -1,4 +1,4 @@
-use std::{println, dbg};
+use std::{dbg, println};
 
 use crate::game::{
     input::{GameInput, Map, PlayerInventory, PlayerStats, ShittyPosition, Tile},
@@ -225,6 +225,73 @@ impl GameState {
     }
 
     pub fn magic(&mut self) -> GameOutput {
+        let attack_direction = if let Some(CachedPlayer {
+            up_to_date: true,
+            position,
+            stats:
+                CachedPlayerStats {
+                    gun_level: enemy_gun_level,
+                    ..
+                },
+        }) = self.cached_player
+        {
+            let GameState {
+                map: Map {
+                    player_position, ..
+                },
+                player_stats: PlayerStats { gun_level, .. },
+                ..
+            } = *self;
+
+            let mut free_neighbours = self.map.find_neighbours(player_position, Tile::Air);
+            free_neighbours.extend(self.map.find_neighbours(player_position, Tile::Base));
+            let neighbours = self.map.neighbours(player_position);
+            let enemy_around = neighbours.iter().find(|&&(_, neighbour)| {
+                matches!(
+                    self.map.tile_at(neighbour).map(|entry| entry.tile),
+                    Some(Tile::Player { .. })
+                )
+            });
+
+            match enemy_around {
+                Some((direction, _)) if free_neighbours.len() == 0 => Some(*direction),
+                _ => {
+                    let distance_and_direction = if player_position.x == position.x {
+                        Some((
+                            player_position.y.abs_diff(position.y),
+                            if player_position.y > position.y {
+                                Direction::Up
+                            } else {
+                                Direction::Down
+                            },
+                        ))
+                    } else if player_position.y == position.y {
+                        Some((
+                            player_position.x.abs_diff(position.x),
+                            if player_position.x > position.x {
+                                Direction::Right
+                            } else {
+                                Direction::Left
+                            },
+                        ))
+                    } else {
+                        None
+                    };
+
+                    match distance_and_direction {
+                        Some((distance, direction))
+                            if distance <= gun_level && gun_level > enemy_gun_level =>
+                        {
+                            Some(direction)
+                        }
+                        _ => None,
+                    }
+                }
+            }
+        } else {
+            None
+        };
+
         let (moves, new_position, optional_mining_direction) = self.moves();
         let neighbour = self
             .map
@@ -232,7 +299,9 @@ impl GameState {
             .or_else(|| self.map.find_neighbour(new_position, Tile::Iron))
             .or_else(|| self.map.find_neighbour(new_position, Tile::Stone));
 
-        let action = if let Some(direction) = optional_mining_direction {
+        let action = if let Some(direction) = attack_direction {
+            Some(Action::Attack { direction })
+        } else if let Some(direction) = optional_mining_direction {
             Some(Action::Mine { direction })
         } else if let Some((direction, _)) = neighbour {
             Some(Action::Mine { direction })
