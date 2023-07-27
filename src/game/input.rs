@@ -36,6 +36,13 @@ impl Tile {
             _ => false,
         }
     }
+
+    pub fn is_stone(self) -> bool {
+        match self {
+            Tile::Stone | Tile::Cobblestone => true,
+            _ => false,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -107,6 +114,7 @@ impl Display for Map {
                 let position = ShittyPosition::new(i as i8, j as i8);
                 let char = match self.tile_at(position).unwrap().tile {
                     _ if self.player_position == position => '*',
+                    _ if self.center() == position => '+',
                     Tile::Acid => 'A',
                     Tile::Iron => 'I',
                     Tile::Unknown => '?',
@@ -126,7 +134,12 @@ impl Display for Map {
 }
 
 impl Map {
-    pub fn merge_with(&mut self, other: &Map, wheel_level: usize) {
+    pub fn merge_with(
+        &mut self,
+        other: &Map,
+        wheel_level: usize,
+        opponent: Option<ShittyPosition>,
+    ) {
         for i in 0..self.dimensions.width.into() {
             for j in 0..self.dimensions.height.into() {
                 if self.tiles[i][j].tile != other.tiles[i][j].tile
@@ -139,7 +152,7 @@ impl Map {
         }
 
         self.player_position = other.player_position;
-        self.floodfill(wheel_level);
+        self.floodfill(wheel_level, opponent);
     }
 
     pub fn set_acid_level(&mut self, level: usize) {
@@ -188,10 +201,14 @@ impl Map {
             .and_then(|array| array.get_mut(position.y as usize))
     }
 
+    pub fn distance_to(&self, position: ShittyPosition) -> usize {
+        self.tile_at(position).unwrap().distance
+    }
+
     pub fn closest_tile(&self, target: Tile) -> Option<ShittyPosition> {
         self.find_tiles(target)
             .iter()
-            .min_by_key(|position| self.tile_at(**position).unwrap().distance)
+            .min_by_key(|position| self.distance_to(**position))
             .copied()
     }
 
@@ -211,6 +228,9 @@ impl Map {
 
         while location != self.player_position {
             let entry = self.tile_at(location).unwrap();
+            if entry.parent.is_none() {
+                break;
+            };
             let parent = entry.parent.unwrap();
 
             if let Some(first_move) = moves.get(0).copied() {
@@ -246,7 +266,7 @@ impl Map {
 
         (
             Moves::new(final_moves),
-            moves[moves.len() - 1].location,
+            moves.front().map_or(to, |m| m.location),
             mininig_direction,
         )
     }
@@ -262,28 +282,18 @@ impl Map {
         self.tiles[position.x as usize][position.y as usize].tile = tile;
     }
 
-    pub fn neighbours(&self, position: ShittyPosition) -> [(Direction, ShittyPosition); 4] {
-        [
-            (
-                Direction::Right,
-                ShittyPosition::new(position.x + 1, position.y),
-            ),
-            (
-                Direction::Left,
-                ShittyPosition::new(position.x - 1, position.y),
-            ),
-            (
-                Direction::Down,
-                ShittyPosition::new(position.x, position.y + 1),
-            ),
-            (
-                Direction::Up,
-                ShittyPosition::new(position.x, position.y - 1),
-            ),
-        ]
+    pub fn center(&self) -> ShittyPosition {
+        ShittyPosition::new(
+            (self.dimensions.width / 2) as i8,
+            (self.dimensions.height / 2) as i8,
+        )
     }
 
-    pub fn floodfill(&mut self, wheel_level: usize) {
+    pub fn neighbours(&self, position: ShittyPosition) -> [(Direction, ShittyPosition); 4] {
+        Direction::DIRECTIONS.map(|d| (d, position.add_direction(d)))
+    }
+
+    pub fn floodfill(&mut self, wheel_level: usize, opponent: Option<ShittyPosition>) {
         let mut queue: HashSet<ShittyPosition> = HashSet::new();
 
         for x in 0..self.dimensions.width {
@@ -321,6 +331,7 @@ impl Map {
                     let first_move = min_entry.parent.is_none();
 
                     let tile_info = match entry.tile {
+                        _ if Some(neighbour) == opponent => None,
                         Tile::Osmium => Some((2, true)),
                         Tile::Iron => Some((4, true)),
                         Tile::Stone | Tile::Cobblestone => Some((8, true)),
@@ -402,6 +413,15 @@ pub struct ShittyPosition {
 impl ShittyPosition {
     pub fn new(x: i8, y: i8) -> Self {
         Self { x, y }
+    }
+
+    pub fn add_direction(self, direction: Direction) -> Self {
+        match direction {
+            Direction::Up => ShittyPosition::new(self.x, self.y - 1),
+            Direction::Down => ShittyPosition::new(self.x, self.y + 1),
+            Direction::Right => ShittyPosition::new(self.x + 1, self.y),
+            Direction::Left => ShittyPosition::new(self.x - 1, self.y),
+        }
     }
 }
 

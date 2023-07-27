@@ -1,4 +1,4 @@
-use std::unreachable;
+use std::{ops::Not, unreachable};
 
 use super::input::{PlayerInventory, PlayerStats, UpgradeCost};
 
@@ -8,6 +8,46 @@ pub enum Direction {
     Up,
     Left,
     Down,
+}
+
+impl Direction {
+    pub const DIRECTIONS: [Direction; 4] = [
+        Direction::Left,
+        Direction::Up,
+        Direction::Right,
+        Direction::Down,
+    ];
+
+    pub fn clockwise(self) -> Self {
+        match self {
+            Direction::Up => Direction::Right,
+            Direction::Down => Direction::Left,
+            Direction::Left => Direction::Up,
+            Direction::Right => Direction::Down,
+        }
+    }
+
+    pub fn counterclockwise(self) -> Self {
+        match self {
+            Direction::Up => Direction::Left,
+            Direction::Down => Direction::Right,
+            Direction::Left => Direction::Down,
+            Direction::Right => Direction::Up,
+        }
+    }
+}
+
+impl Not for Direction {
+    type Output = Self;
+
+    fn not(self) -> Self::Output {
+        match self {
+            Direction::Up => Direction::Down,
+            Direction::Down => Direction::Up,
+            Direction::Left => Direction::Right,
+            Direction::Right => Direction::Left,
+        }
+    }
 }
 
 impl Into<char> for Direction {
@@ -21,13 +61,15 @@ impl Into<char> for Direction {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct Moves {
     pub mvs: [Option<Direction>; 3],
 }
 
 impl Moves {
-    pub fn new(mvs: [Option<Direction>; 3]) -> Self { Self { mvs } }
+    pub fn new(mvs: [Option<Direction>; 3]) -> Self {
+        Self { mvs }
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -68,13 +110,13 @@ impl Upgrade {
                 _ => unreachable!(),
             },
             Self::Drill => match stats.drill_level {
-                1 => UpgradeCost::new(3, 0),
-                2 => UpgradeCost::new(6, 1),
+                1 => UpgradeCost::new(3, 100),
+                2 => UpgradeCost::new(6, 100),
                 _ => unreachable!(),
             },
             Self::Movement => match stats.wheel_level {
                 1 => UpgradeCost::new(3, 0),
-                2 => UpgradeCost::new(6, 1),
+                2 => UpgradeCost::new(6, 3),
                 _ => unreachable!(),
             },
         }
@@ -85,12 +127,12 @@ impl Upgrade {
         Upgrade::Sight,
         Upgrade::Movement,
         Upgrade::Attack,
-        Upgrade::Movement,
         Upgrade::Sight,
         Upgrade::Attack,
-        Upgrade::Drill,
-        Upgrade::Drill,
+        Upgrade::Movement,
         Upgrade::Radar,
+        Upgrade::Drill,
+        Upgrade::Drill,
     ];
 }
 

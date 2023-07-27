@@ -1,4 +1,4 @@
-use std::{println, dbg};
+use std::{dbg, println};
 
 use crate::game::{
     input::{GameInput, Map, PlayerInventory, PlayerStats, ShittyPosition, Tile},
@@ -27,6 +27,8 @@ pub struct GameState {
     pub upgrade_queue_index: usize,
     pub base_position: ShittyPosition,
     pub turn: usize,
+    pub final_phase_entryway: Option<(Direction, ShittyPosition)>,
+    pub cage_step: usize,
 }
 
 impl GameState {
@@ -73,15 +75,18 @@ impl GameState {
             player_inventory: input.player_inventory,
             upgrade_queue_index: 0,
             turn: 0,
+            final_phase_entryway: None,
+            cage_step: 0,
         };
 
         result
             .map
             .set_tile_at(result.map.player_position, Tile::Air);
 
-        result
-            .map
-            .floodfill(result.player_stats.wheel_level as usize);
+        result.map.floodfill(
+            result.player_stats.wheel_level as usize,
+            result.opponent_exact_position(),
+        );
 
         result
     }
@@ -155,13 +160,16 @@ impl GameState {
             None => cached_enemy.up_to_date = false,
         });
 
-        self.map
-            .merge_with(&input.map, input.player_stats.wheel_level as usize);
+        self.map.set_acid_level(self.acid_level());
+        self.map.merge_with(
+            &input.map,
+            input.player_stats.wheel_level as usize,
+            self.opponent_exact_position(),
+        );
         self.player_stats = input.player_stats;
         self.player_inventory = input.player_inventory;
         self.turn += 1;
-        dbg!(self.acid_level());
-        self.map.set_acid_level(self.acid_level());
+        // dbg!(self.acid_level());
     }
 
     fn acid_level(&self) -> usize {
@@ -191,7 +199,112 @@ impl GameState {
             .move_towards(to, self.player_stats.wheel_level as usize)
     }
 
-    fn moves(&self) -> (Moves, ShittyPosition, Option<Direction>) {
+    fn opponent_exact_position(&self) -> Option<ShittyPosition> {
+        if let Some(opponent) = &self.cached_player {
+            if opponent.up_to_date {
+                return Some(opponent.position);
+            }
+        }
+
+        return None;
+    }
+
+    fn moves(&mut self) -> (Moves, ShittyPosition, Option<Direction>) {
+        if self.acid_level() > 0 {
+            let center = self.map.center();
+
+            let (direction_from_center, closest) = self
+                .map
+                .neighbours(center)
+                .iter()
+                .min_by_key(|(_, position)| self.map.distance_to(*position))
+                .copied()
+                .unwrap();
+
+            if closest == self.map.player_position && self.final_phase_entryway.is_none() {
+                println!("SETTING CENTER ENTRYWAY!!!");
+                self.final_phase_entryway = Some((direction_from_center, closest));
+            }
+
+            if let Some((direction_from_center, closest)) = self.final_phase_entryway {
+                println!("CAGE MODE {closest:?}");
+                let third_spot = center.add_direction(!direction_from_center);
+
+                if self.cage_step == 4 {
+                    println!("DETECTING CAGE ALREADY BUILT");
+                    if let Some(opponent_position) = self.opponent_exact_position() {
+                        return self.move_towards(opponent_position);
+                    }
+                } else if self.map.player_position == closest
+                    && self.map.tile_at(center).unwrap().tile == Tile::Air
+                    && self
+                        .map
+                        .tile_at(closest.add_direction(direction_from_center.clockwise()))
+                        .unwrap()
+                        .tile
+                        .is_stone()
+                    && self
+                        .map
+                        .tile_at(closest.add_direction(direction_from_center.counterclockwise()))
+                        .unwrap()
+                        .tile
+                        .is_stone()
+                {
+                    println!("BUILD MOVE 1");
+                    self.cage_step = 1;
+                    return self.move_towards(center);
+                } else if self.map.player_position == center
+                    && self.map.tile_at(third_spot).unwrap().tile == Tile::Air
+                    && self
+                        .map
+                        .tile_at(center.add_direction(direction_from_center.clockwise()))
+                        .unwrap()
+                        .tile
+                        == Tile::Air
+                    && self
+                        .map
+                        .tile_at(center.add_direction(direction_from_center.counterclockwise()))
+                        .unwrap()
+                        .tile
+                        == Tile::Air
+                {
+                    if self.cage_step == 1 {
+                        self.cage_step = 2;
+                        println!("BUILD MOVE 2");
+                        return self.move_towards(third_spot);
+                    } else {
+                        self.cage_step = 4;
+                        return (Moves::default(), self.map.player_position, None);
+                    }
+                } else if self.map.player_position == third_spot
+                    && self
+                        .map
+                        .tile_at(third_spot.add_direction(direction_from_center.clockwise()))
+                        .unwrap()
+                        .tile
+                        .is_stone()
+                    && self
+                        .map
+                        .tile_at(third_spot.add_direction(direction_from_center.counterclockwise()))
+                        .unwrap()
+                        .tile
+                        .is_stone()
+                {
+                    self.cage_step = 3;
+                    println!("BUILD MOVE 3");
+                    return self.move_towards(center);
+                } else {
+                    if self.cage_step == 3 {
+                        self.cage_step = 4;
+                    }
+
+                    return (Moves::default(), self.map.player_position, None);
+                }
+            }
+
+            return self.move_towards(closest);
+        };
+
         match self.target_upgrade() {
             Some(target_upgrade)
                 if self
@@ -218,21 +331,84 @@ impl GameState {
         } else {
             println!("going for unknown");
             let unknown = self.map.closest_tile(Tile::Unknown).unwrap();
-            dbg!(self.map.player_position);
-            dbg!(unknown);
+            // dbg!(self.map.player_position);
+            // dbg!(unknown);
             self.move_towards(unknown)
         };
     }
 
     pub fn magic(&mut self) -> GameOutput {
         let (moves, new_position, optional_mining_direction) = self.moves();
+
         let neighbour = self
             .map
             .find_neighbour(new_position, Tile::Osmium)
             .or_else(|| self.map.find_neighbour(new_position, Tile::Iron))
             .or_else(|| self.map.find_neighbour(new_position, Tile::Stone));
 
-        let action = if let Some(direction) = optional_mining_direction {
+        let action = if self.final_phase_entryway.is_some() {
+            let center = self.map.center();
+            let (direction_from_center, closest) = self
+                .map
+                .neighbours(center)
+                .iter()
+                .min_by_key(|(_, position)| self.map.distance_to(*position))
+                .copied()
+                .unwrap();
+
+            let third_spot = center.add_direction(!direction_from_center);
+            if closest == self.map.player_position {
+                let side_cw = closest.add_direction(direction_from_center.clockwise());
+                let side_ccw = closest.add_direction(direction_from_center.counterclockwise());
+                if self.map.tile_at(center).unwrap().tile != Tile::Air {
+                    Some(Action::Mine {
+                        direction: !direction_from_center,
+                    })
+                } else if !self.map.tile_at(side_cw).unwrap().tile.is_stone() {
+                    Some(Action::Place {
+                        direction: direction_from_center.clockwise(),
+                    })
+                } else if !self.map.tile_at(side_ccw).unwrap().tile.is_stone() {
+                    Some(Action::Place {
+                        direction: direction_from_center.counterclockwise(),
+                    })
+                } else {
+                    // TODO: USE SCAN HERE IF WE HAVE THE ANTENA
+                    None
+                }
+            } else if self.map.player_position == center {
+                let side_cw = center.add_direction(direction_from_center.clockwise());
+                let side_ccw = center.add_direction(direction_from_center.counterclockwise());
+                if self.map.tile_at(third_spot).unwrap().tile != Tile::Air {
+                    Some(Action::Mine {
+                        direction: !direction_from_center,
+                    })
+                } else if self.map.tile_at(side_cw).unwrap().tile != Tile::Air {
+                    Some(Action::Mine {
+                        direction: direction_from_center.clockwise(),
+                    })
+                } else if self.map.tile_at(side_ccw).unwrap().tile != Tile::Air {
+                    Some(Action::Mine {
+                        direction: direction_from_center.counterclockwise(),
+                    })
+                } else {
+                    // TODO: USE SCAN HERE IF WE HAVE THE ANTENA
+                    None
+                }
+            } else {
+                let neighbours = self.map.neighbours(center);
+
+                if let Some((direction, _)) = neighbours
+                    .iter()
+                    .copied()
+                    .find(|(d, p)| Some(p.add_direction(*d)) == self.opponent_exact_position())
+                {
+                    Some(Action::Attack { direction })
+                } else {
+                    None
+                }
+            }
+        } else if let Some(direction) = optional_mining_direction {
             Some(Action::Mine { direction })
         } else if let Some((direction, _)) = neighbour {
             Some(Action::Mine { direction })
@@ -256,8 +432,8 @@ impl GameState {
             _ => None,
         };
 
-        println!("{}", &self.map);
-        println!("{:?}", &self.map.dimensions);
+        // println!("{}", &self.map);
+        // println!("{:?}", &self.map.dimensions);
 
         GameOutput {
             moves: Some(moves),
