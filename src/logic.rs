@@ -106,6 +106,10 @@ impl GameState {
                         y: (i % input.map.dimensions.height as usize) as i8,
                     };
 
+                    if new_position == input.map.player_position {
+                        return None;
+                    }
+
                     let new_gun_level = {
                         let damage_taken =
                             self.player_stats.hit_points - input.player_stats.hit_points;
@@ -234,9 +238,20 @@ impl GameState {
 
                 if self.cage_step == 4 {
                     println!("DETECTING CAGE ALREADY BUILT");
-                    if let Some(opponent_position) = self.opponent_exact_position() {
-                        return self.move_towards(opponent_position);
-                    }
+                    // if let Some(opponent_position) = self.opponent_exact_position() {
+                    //     println!("PLAYER DETECTED");
+                    //     let mut moves = self.move_towards(opponent_position);
+                    //     for i in 1..3 {
+                    //         moves.0.mvs[i] = None;
+                    //     }
+                    //     if let Some(direction) = moves.0.mvs[0] {
+                    //         moves.1 = self.map.player_position.add_direction(direction);
+                    //     }
+
+                    //     return moves;
+                    // }
+
+                    return (Moves::default(), self.map.player_position, None);
                 } else if self.map.player_position == closest
                     && self.map.tile_at(center).unwrap().tile == Tile::Air
                     && self
@@ -354,7 +369,7 @@ impl GameState {
             true,
         ) = (
             &self.cached_player,
-            self.cage_step != 4 && self.acid_level() > 0,
+            self.cage_step != 4 && self.acid_level() == 0,
         ) {
             let GameState {
                 map: Map {
@@ -426,6 +441,8 @@ impl GameState {
             None
         };
 
+        run_away = None;
+
         let (moves, new_position, optional_mining_direction) = match run_away {
             Some(direction) if self.cage_step != 4 && self.acid_level() == 0 => {
                 self.move_towards(ShittyPosition {
@@ -492,32 +509,60 @@ impl GameState {
 
             let third_spot = center.add_direction(!direction_from_center);
             if closest == self.map.player_position {
+                println!("SIDE");
                 let side_cw = closest.add_direction(direction_from_center.clockwise());
                 let side_ccw = closest.add_direction(direction_from_center.counterclockwise());
-                if self.map.tile_at(center).unwrap().tile != Tile::Air {
+                // TODO: USE SCAN HERE IF WE HAVE THE ANTENA
+                let neighbours = self.map.neighbours(self.map.player_position);
+
+                if let Some((direction, _)) = neighbours
+                    .iter()
+                    .copied()
+                    .find(|(d, p)| Some(*p) == self.opponent_exact_position())
+                {
+                    println!("1");
+                    Some(Action::Attack { direction })
+                } else if self.map.tile_at(center).unwrap().tile != Tile::Air {
+                    println!("2");
                     Some(Action::Mine {
                         direction: !direction_from_center,
                     })
                 } else if !self.map.tile_at(side_cw).unwrap().tile.is_stone() {
+                    println!("3");
                     Some(Action::Place {
                         direction: direction_from_center.clockwise(),
                     })
                 } else if !self.map.tile_at(side_ccw).unwrap().tile.is_stone() {
+                    println!("4");
                     Some(Action::Place {
                         direction: direction_from_center.counterclockwise(),
                     })
                 } else {
-                    // TODO: USE SCAN HERE IF WE HAVE THE ANTENA
+                    println!("5");
                     None
                 }
             } else if self.map.player_position == center {
+                println!("CENTER");
                 let side_cw = center.add_direction(direction_from_center.clockwise());
                 let side_ccw = center.add_direction(direction_from_center.counterclockwise());
-                if self.map.tile_at(third_spot).unwrap().tile != Tile::Air {
+                // TODO: USE SCAN HERE IF WE HAVE THE ANTENA
+                let neighbours = self.map.neighbours(self.map.player_position);
+
+                if let Some((direction, _)) = neighbours
+                    .iter()
+                    .copied()
+                    .find(|(d, p)| Some(*p) == self.opponent_exact_position())
+                {
+                    println!("1");
+                    Some(Action::Attack { direction })
+                }
+                /*else if self.map.tile_at(third_spot).unwrap().tile != Tile::Air {
+                    println!("2");
                     Some(Action::Mine {
                         direction: !direction_from_center,
                     })
-                } else if self.map.tile_at(side_cw).unwrap().tile != Tile::Air {
+                }*/
+                /*else if self.map.tile_at(side_cw).unwrap().tile != Tile::Air {
                     Some(Action::Mine {
                         direction: direction_from_center.clockwise(),
                     })
@@ -525,9 +570,23 @@ impl GameState {
                     Some(Action::Mine {
                         direction: direction_from_center.counterclockwise(),
                     })
-                } else {
-                    // TODO: USE SCAN HERE IF WE HAVE THE ANTENA
-                    None
+                }*/
+                else {
+                    println!("3");
+                    let mut res = None;
+                    for direction in Direction::DIRECTIONS {
+                        if !self
+                            .map
+                            .tile_at(center.add_direction(direction))
+                            .unwrap()
+                            .tile
+                            .is_stone()
+                        {
+                            res = Some(Action::Place { direction });
+                            break;
+                        }
+                    }
+                    res
                 }
             } else {
                 let neighbours = self.map.neighbours(center);
@@ -535,7 +594,7 @@ impl GameState {
                 if let Some((direction, _)) = neighbours
                     .iter()
                     .copied()
-                    .find(|(d, p)| Some(p.add_direction(*d)) == self.opponent_exact_position())
+                    .find(|(d, p)| Some(*p) == self.opponent_exact_position())
                 {
                     Some(Action::Attack { direction })
                 } else {

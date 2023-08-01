@@ -53,6 +53,7 @@ pub struct ParentInfo {
     location: ShittyPosition,
     // Whether this block requires to be mined
     requires_mining: bool,
+    skip_move: bool,
 
     // if we have n moves per turn, this represents the index of the
     // move planned to reach this tile.
@@ -65,12 +66,14 @@ impl ParentInfo {
         parent_location: ShittyPosition,
         requires_mining: bool,
         per_turn_move_index: usize,
+        skip_move: bool,
     ) -> Self {
         Self {
             direction,
             location: parent_location,
             requires_mining,
             per_turn_move_index,
+            skip_move,
         }
     }
 }
@@ -234,7 +237,7 @@ impl Map {
             let parent = entry.parent.unwrap();
 
             if let Some(first_move) = moves.get(0).copied() {
-                if first_move.per_turn_move_index == 0 {
+                if first_move.per_turn_move_index == 0 || first_move.skip_move {
                     moves.clear();
                     mininig_direction = if first_move.requires_mining {
                         Some(first_move.direction)
@@ -249,6 +252,7 @@ impl Map {
                 location,
                 parent.requires_mining,
                 parent.per_turn_move_index,
+                parent.skip_move,
             ));
 
             location = parent.location;
@@ -361,6 +365,7 @@ impl Map {
                                 } else {
                                     per_turn_move_index
                                 },
+                                opponent == Some(neighbour),
                             ));
                         }
                     }
