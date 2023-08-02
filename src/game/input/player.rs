@@ -24,7 +24,7 @@ where
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum Error
+pub enum Error
 {
     Position
     {
@@ -108,7 +108,7 @@ pub(crate) mod position
     }
 
     #[derive(Debug, Clone, PartialEq, Eq)]
-    pub(crate) enum Error
+    pub enum Error
     {
         Missing,
         MissingDelimiter,
@@ -196,7 +196,7 @@ pub(crate) mod stats
     }
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-    pub(crate) enum Property
+    pub enum Property
     {
         HitPoints,
 
@@ -238,7 +238,7 @@ pub(crate) mod stats
     }
 
     #[derive(Debug, Clone, PartialEq, Eq)]
-    pub(crate) enum Error
+    pub enum Error
     {
         Missing,
         MissingProperty
@@ -316,7 +316,7 @@ pub(crate) mod inventory
     }
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-    pub(crate) enum Item
+    pub enum Item
     {
         Stone,
         Iron,
@@ -338,7 +338,7 @@ pub(crate) mod inventory
     }
 
     #[derive(Debug, Clone, PartialEq, Eq)]
-    pub(crate) enum Error
+    pub enum Error
     {
         Missing,
         MissingItem

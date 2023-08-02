@@ -72,16 +72,16 @@ where
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum Error
+pub enum Error
 {
     Dimensions(dimensions::Error),
     Map(map::Error),
     Player(player::Error),
 }
 
-impl ::std::fmt::Display for Error
+impl ::core::fmt::Display for Error
 {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result
     {
         match self {
             Error::Dimensions(dimensions_err) => write!(f, "{dimensions_err}"),
@@ -91,9 +91,9 @@ impl ::std::fmt::Display for Error
     }
 }
 
-impl ::std::error::Error for Error
+impl ::core::error::Error for Error
 {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)>
+    fn source(&self) -> Option<&(dyn ::core::error::Error + 'static)>
     {
         match self {
             Error::Dimensions(dimensions_err) => Some(dimensions_err),

@@ -22,7 +22,7 @@ where
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub(crate) enum IncompleteKind
+pub enum IncompleteKind
 {
     IncompleteRow,
     MissingRow,
@@ -40,7 +40,7 @@ impl ::core::fmt::Display for IncompleteKind
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub(crate) enum Error
+pub enum Error
 {
     Missing,
     Incomplete
@@ -133,7 +133,7 @@ mod tile
     }
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-    pub(crate) enum Error
+    pub enum Error
     {
         Unknown
         {
