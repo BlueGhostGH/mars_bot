@@ -21,7 +21,7 @@ where
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Error
+pub(crate) enum Error
 {
     Missing,
     MissingDelimiter,

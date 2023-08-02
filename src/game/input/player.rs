@@ -24,7 +24,7 @@ where
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Error
+pub(crate) enum Error
 {
     Position
     {
@@ -88,7 +88,7 @@ impl From<inventory::Error> for Error
     }
 }
 
-pub(super) mod position
+pub(crate) mod position
 {
     pub(super) use crate::game::position::Position;
 
@@ -108,7 +108,7 @@ pub(super) mod position
     }
 
     #[derive(Debug, Clone, PartialEq, Eq)]
-    pub enum Error
+    pub(crate) enum Error
     {
         Missing,
         MissingDelimiter,
@@ -150,7 +150,7 @@ pub(super) mod position
     }
 }
 
-pub(super) mod stats
+pub(crate) mod stats
 {
     #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
     pub(super) struct Stats
@@ -196,7 +196,7 @@ pub(super) mod stats
     }
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-    pub enum Property
+    pub(crate) enum Property
     {
         HitPoints,
 
@@ -209,7 +209,7 @@ pub(super) mod stats
         HasBattery,
     }
 
-    const PROPERTIES: [Property; 7] = [
+    pub(crate) const PROPERTIES: [Property; 7] = [
         Property::HitPoints,
         Property::DrlLevel,
         Property::GunLevel,
@@ -238,7 +238,7 @@ pub(super) mod stats
     }
 
     #[derive(Debug, Clone, PartialEq, Eq)]
-    pub enum Error
+    pub(crate) enum Error
     {
         Missing,
         MissingProperty
@@ -283,7 +283,7 @@ pub(super) mod stats
     }
 }
 
-pub(super) mod inventory
+pub(crate) mod inventory
 {
     #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
     pub(super) struct Inventory
@@ -316,14 +316,14 @@ pub(super) mod inventory
     }
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-    pub enum Item
+    pub(crate) enum Item
     {
         Stone,
         Iron,
         Osmium,
     }
 
-    const ITEMS: [Item; 3] = [Item::Stone, Item::Iron, Item::Osmium];
+    pub(crate) const ITEMS: [Item; 3] = [Item::Stone, Item::Iron, Item::Osmium];
 
     impl ::core::fmt::Display for Item
     {
@@ -338,7 +338,7 @@ pub(super) mod inventory
     }
 
     #[derive(Debug, Clone, PartialEq, Eq)]
-    pub enum Error
+    pub(crate) enum Error
     {
         Missing,
         MissingItem

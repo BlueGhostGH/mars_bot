@@ -1,22 +1,22 @@
 use crate::array::ArrayTransposeResult;
 
-mod dimensions;
-mod map;
-mod player;
+pub(crate) mod dimensions;
+pub(crate) mod map;
+pub(crate) mod player;
 
-pub(crate) use dimensions::Dimensions;
-pub(crate) use map::Map;
-pub(crate) use player::Player;
+use dimensions::Dimensions;
+use map::Map;
+use player::Player;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub struct Input
+pub(crate) struct Input
 {
     dimensions: Dimensions,
     map: Map,
     player: Player,
 }
 
-pub fn try_parse<In>(input: In) -> ::core::result::Result<Input, Error>
+pub(crate) fn try_parse<In>(input: In) -> ::core::result::Result<Input, Error>
 where
     In: AsRef<str>,
 {
@@ -72,7 +72,7 @@ where
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Error
+pub(crate) enum Error
 {
     Dimensions(dimensions::Error),
     Map(map::Error),

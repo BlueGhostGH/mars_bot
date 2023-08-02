@@ -1,7 +1,7 @@
-pub mod input;
-pub mod output;
+pub(crate) mod input;
+pub(crate) mod output;
 
-pub use input::Input;
-pub use output::Output;
+pub(crate) use input::Input;
+pub(crate) use output::Output;
 
 mod position;

@@ -16,15 +16,9 @@ fn main()
         ));
 
         if let Ok(input) = input {
-            let input = mars_bot::game::input::try_parse(&input).unwrap();
-
-            // TODO: magic here
-
-            let output = mars_bot::magic(input);
-
             ::std::fs::write(
                 format!("{}/c{id}_{round}.txt", ::std::env::args().nth(1).unwrap()),
-                mars_bot::game::output::show(output),
+                mars_bot::bot::Bot::turn(input),
             )
             .unwrap();
 

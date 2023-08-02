@@ -1,12 +1,12 @@
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
-pub struct Output
+pub(crate) struct Output
 {
     pub(crate) moves: Option<moves::Moves>,
     pub(crate) action: Option<action::Action>,
     pub(crate) upgrade: Option<upgrade::Upgrade>,
 }
 
-pub fn show(
+pub(crate) fn show(
     Output {
         moves,
         action,
@@ -70,7 +70,7 @@ pub(crate) mod moves
     }
 }
 
-mod action
+pub(crate) mod action
 {
     use crate::game::output::direction;
 
@@ -110,7 +110,7 @@ mod action
     }
 }
 
-mod upgrade
+pub(crate) mod upgrade
 {
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
     pub(crate) enum Upgrade
