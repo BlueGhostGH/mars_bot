@@ -14,7 +14,7 @@ where
             .bytes()
             .filter_map(|by| match by {
                 b' ' => None,
-                _ => Some(by as char),
+                _ => Some(by),
             })
             .map(tile::try_parse)
             .collect::<Result<Box<[_]>, tile::Error>>()?,
@@ -107,25 +107,25 @@ mod tile
         Fog,
     }
 
-    pub(super) fn try_parse(input: char) -> ::core::result::Result<Tile, Error>
+    pub(super) fn try_parse(input: u8) -> ::core::result::Result<Tile, Error>
     {
         let tile = match input {
-            '.' => Tile::Air,
-            'X' => Tile::Stone,
-            'A' => Tile::Cobblestone,
-            'B' => Tile::Bedrock,
-            'C' => Tile::Iron,
-            'D' => Tile::Osmium,
-            'E' => Tile::Base,
-            'F' => Tile::Acid,
+            b'.' => Tile::Air,
+            b'X' => Tile::Stone,
+            b'A' => Tile::Cobblestone,
+            b'B' => Tile::Bedrock,
+            b'C' => Tile::Iron,
+            b'D' => Tile::Osmium,
+            b'E' => Tile::Base,
+            b'F' => Tile::Acid,
 
-            '0'..='9' => Tile::Player {
+            b'0'..=b'9' => Tile::Player {
                 // SAFETY: since our id is in the range 0..=9,
                 // converting to an u8 will never fail
                 id: u8::try_from(input).unwrap() - 48,
             },
 
-            '?' => Tile::Fog,
+            b'?' => Tile::Fog,
             tile => return Err(Error::Unknown { tile }),
         };
 
@@ -137,7 +137,7 @@ mod tile
     {
         Unknown
         {
-            tile: char
+            tile: u8
         },
     }
 
@@ -146,7 +146,7 @@ mod tile
         fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result
         {
             match self {
-                Error::Unknown { tile } => write!(f, "unknown tile {tile}"),
+                Error::Unknown { tile } => write!(f, "unknown tile {}", *tile),
             }
         }
     }
