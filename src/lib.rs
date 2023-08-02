@@ -1,4 +1,9 @@
-#![feature(byte_slice_trim_ascii, never_type, iter_intersperse)]
+#![feature(
+    error_in_core,
+    inline_const,
+    iter_intersperse,
+    maybe_uninit_array_assume_init
+)]
 #![deny(unsafe_code)]
 #![warn(
     clippy::all,
@@ -14,6 +19,7 @@
 )]
 #![allow(clippy::new_without_default)]
 
+mod array;
 pub mod game;
 
 use rand::Rng;
@@ -21,7 +27,7 @@ use rand::Rng;
 #[derive(Debug)]
 enum Error {}
 
-pub fn magic(input: game::input::GameInput) -> game::output::GameOutput
+pub fn magic(input: game::input::Input) -> game::output::GameOutput
 {
     let mut rng = rand::thread_rng();
     let direction = match rng.gen_range(1..=4) {

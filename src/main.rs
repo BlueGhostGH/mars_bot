@@ -16,7 +16,7 @@ fn main()
         ));
 
         if let Ok(input) = input {
-            let input = mars_bot::game::input::GameInput::try_from(input.as_str()).unwrap();
+            let input = mars_bot::game::input::try_parse(&input).unwrap();
 
             // TODO: magic here
 
