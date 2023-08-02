@@ -1,17 +1,45 @@
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum Direction
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
+pub struct Output
 {
-    Right,
-    Up,
-    Left,
-    Down,
+    pub(crate) moves: Option<moves::Moves>,
+    pub(crate) action: Option<action::Action>,
+    pub(crate) upgrade: Option<upgrade::Upgrade>,
 }
 
-impl Into<char> for Direction
+pub fn show(
+    Output {
+        moves,
+        action,
+        upgrade,
+    }: Output,
+) -> String
 {
-    fn into(self) -> char
+    [
+        moves.map(moves::show),
+        action.map(action::show),
+        upgrade.map(upgrade::show),
+    ]
+    .into_iter()
+    .filter_map(::core::convert::identity)
+    .intersperse("\n".into())
+    .collect()
+}
+
+pub(crate) mod direction
+{
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    // NOTE: Defined in trigonometric order
+    pub(crate) enum Direction
     {
-        match self {
+        Right,
+        Up,
+        Left,
+        Down,
+    }
+
+    pub(super) fn show(direction: Direction) -> char
+    {
+        match direction {
             Direction::Right => 'R',
             Direction::Up => 'U',
             Direction::Left => 'L',
@@ -20,124 +48,98 @@ impl Into<char> for Direction
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-pub(crate) enum Moves
+pub(crate) mod moves
 {
-    One
+    use crate::game::output::direction;
+
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    pub(crate) struct Moves
     {
-        first: Direction
-    },
-    Two
+        pub(crate) mvs: [Option<direction::Direction>; 3],
+    }
+
+    pub(super) fn show(moves: Moves) -> String
     {
-        first: Direction, second: Direction
-    },
-    Three
-    {
-        first: Direction,
-        second: Direction,
-        third: Direction,
-    },
-}
-
-#[derive(Debug)]
-pub(crate) enum Action
-{
-    Attack
-    {
-        direction: Direction
-    },
-    Scan
-    {
-        direction: Direction
-    },
-    Mine
-    {
-        direction: Direction
-    },
-    Place
-    {
-        direction: Direction
-    },
-}
-
-#[derive(Debug)]
-pub(crate) enum Upgrade
-{
-    Sight,
-    Attack,
-    Drill,
-    Movement,
-
-    Radar,
-    Battery,
-
-    Heal,
-}
-
-#[derive(Debug)]
-pub struct GameOutput
-{
-    pub(crate) moves: Option<Moves>,
-    pub(crate) action: Option<Action>,
-    pub(crate) upgrade: Option<Upgrade>,
-}
-
-impl Into<String> for GameOutput
-{
-    fn into(self) -> String
-    {
-        let moves = self.moves.map(|moves| {
-            match moves {
-                Moves::One { first } => ::std::iter::once(first).collect::<Vec<_>>(),
-                Moves::Two { first, second } => ::std::iter::once(first)
-                    .chain(::std::iter::once(second))
-                    .collect::<Vec<_>>(),
-                Moves::Three {
-                    first,
-                    second,
-                    third,
-                } => ::std::iter::once(first)
-                    .chain(::std::iter::once(second))
-                    .chain(::std::iter::once(third))
-                    .collect::<Vec<_>>(),
-            }
-            .into_iter()
-            .map(|direction| direction.into())
-            .intersperse(' ')
-            .collect::<String>()
-        });
-
-        let action = self.action.map(|action| {
-            let (action, direction) = match action {
-                Action::Attack { direction } => ('A', direction),
-                Action::Scan { direction } => ('S', direction),
-                Action::Mine { direction } => ('M', direction),
-                Action::Place { direction } => ('P', direction),
-            };
-
-            format!("{action} {}", <Direction as Into<char>>::into(direction))
-        });
-
-        let upgrade = self.upgrade.map(|upgrade| {
-            let upgrade = match upgrade {
-                Upgrade::Sight => 'S',
-                Upgrade::Attack => 'A',
-                Upgrade::Drill => 'D',
-                Upgrade::Movement => 'M',
-
-                Upgrade::Radar => 'R',
-                Upgrade::Battery => 'B',
-
-                Upgrade::Heal => 'H',
-            };
-
-            format!("B {upgrade}")
-        });
-
-        [moves, action, upgrade]
+        moves
+            .mvs
             .into_iter()
             .flatten()
-            .intersperse(String::from("\n"))
-            .collect::<String>()
+            .map(direction::show)
+            .intersperse(' ')
+            .collect()
+    }
+}
+
+mod action
+{
+    use crate::game::output::direction;
+
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    pub(crate) enum Action
+    {
+        Attack
+        {
+            direction: direction::Direction
+        },
+        Scan
+        {
+            direction: direction::Direction
+        },
+        Mine
+        {
+            direction: direction::Direction
+        },
+        Place
+        {
+            direction: direction::Direction
+        },
+    }
+
+    pub(super) fn show(action: Action) -> String
+    {
+        let (action, direction) = match action {
+            Action::Attack { direction } => ('A', direction),
+            Action::Scan { direction } => ('S', direction),
+            Action::Mine { direction } => ('M', direction),
+            Action::Place { direction } => ('P', direction),
+        };
+
+        [action, ' ', direction::show(direction)]
+            .into_iter()
+            .collect()
+    }
+}
+
+mod upgrade
+{
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    pub(crate) enum Upgrade
+    {
+        Sight,
+        Attack,
+        Drill,
+        Movement,
+
+        Radar,
+        Battery,
+
+        Heal,
+    }
+
+    pub(super) fn show(upgrade: Upgrade) -> String
+    {
+        let upgrade = match upgrade {
+            Upgrade::Sight => 'S',
+            Upgrade::Attack => 'A',
+            Upgrade::Drill => 'D',
+            Upgrade::Movement => 'M',
+
+            Upgrade::Radar => 'R',
+            Upgrade::Battery => 'B',
+
+            Upgrade::Heal => 'H',
+        };
+
+        ['B', ' ', upgrade].into_iter().collect()
     }
 }

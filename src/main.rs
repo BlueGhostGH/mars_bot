@@ -24,7 +24,7 @@ fn main()
 
             ::std::fs::write(
                 format!("{}/c{id}_{round}.txt", ::std::env::args().nth(1).unwrap()),
-                <mars_bot::game::output::GameOutput as Into<String>>::into(output),
+                mars_bot::game::output::show(output),
             )
             .unwrap();
 

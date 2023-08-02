@@ -27,19 +27,21 @@ use rand::Rng;
 #[derive(Debug)]
 enum Error {}
 
-pub fn magic(input: game::input::Input) -> game::output::GameOutput
+pub fn magic(input: game::Input) -> game::Output
 {
     let mut rng = rand::thread_rng();
     let direction = match rng.gen_range(1..=4) {
-        1 => game::output::Direction::Right,
-        2 => game::output::Direction::Up,
-        3 => game::output::Direction::Left,
-        4 => game::output::Direction::Down,
+        1 => game::output::direction::Direction::Right,
+        2 => game::output::direction::Direction::Up,
+        3 => game::output::direction::Direction::Left,
+        4 => game::output::direction::Direction::Down,
         _ => unreachable!(),
     };
 
-    game::output::GameOutput {
-        moves: Some(game::output::Moves::One { first: direction }),
+    game::output::Output {
+        moves: Some(game::output::moves::Moves {
+            mvs: [Some(direction), None, None],
+        }),
         action: None,
         upgrade: None,
     }
