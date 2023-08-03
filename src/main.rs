@@ -1,3 +1,5 @@
+#![feature(fs_try_exists)]
+
 fn main()
 {
     match try_main() {
@@ -17,26 +19,23 @@ fn try_main() -> ::std::result::Result<(), Error>
 
     loop {
         let read_path = format!("{directory_path}/game/s{id}_{round}.txt");
-        let input = ::std::fs::read_to_string(read_path);
 
-        match input {
-            Ok(input) => {
-                let write_path = format!("{directory_path}/game/c{id}_{round}.txt");
-                let next_turn = mars_bot::bot::Bot::turn(input)?;
+        let exists = ::std::fs::try_exists(&read_path).unwrap_or(false);
 
-                ::std::fs::write(write_path, next_turn)?;
-
-                round += 1;
-            }
-            Err(err) if err.kind() == ::std::io::ErrorKind::NotFound => {
-                continue;
-            }
-            _ => {
-                input?;
-            }
+        if exists {
+            ::std::thread::sleep(::std::time::Duration::from_millis(10));
+        } else {
+            continue;
         }
 
-        ::std::thread::sleep(::std::time::Duration::from_secs(2));
+        let input = ::std::fs::read_to_string(&read_path)?;
+
+        let write_path = format!("{directory_path}/game/c{id}_{round}.txt");
+        let next_turn = mars_bot::bot::Bot::turn(input)?;
+
+        ::std::fs::write(write_path, next_turn)?;
+
+        round += 1;
     }
 }
 
