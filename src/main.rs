@@ -1,5 +1,7 @@
 #![feature(fs_try_exists)]
 
+use mars_bot::bot;
+
 fn main()
 {
     match try_main() {
@@ -17,6 +19,8 @@ fn try_main() -> ::std::result::Result<(), Error>
         .nth(1)
         .unwrap_or_else(|| String::from("."));
 
+    let mut bot = None::<bot::Bot>;
+
     loop {
         let read_path = format!("{directory_path}/game/s{id}_{round}.txt");
 
@@ -29,9 +33,18 @@ fn try_main() -> ::std::result::Result<(), Error>
         }
 
         let input = ::std::fs::read_to_string(&read_path)?;
-
         let write_path = format!("{directory_path}/game/c{id}_{round}.txt");
-        let next_turn = mars_bot::bot::Bot::turn(input)?;
+
+        let next_turn = match bot {
+            Some(ref bot) => bot.turn(&input)?,
+            None => {
+                let (init_bot, next_turn) = bot::uninit::try_init(input)?;
+
+                let _ = bot.insert(init_bot);
+
+                next_turn
+            }
+        };
 
         ::std::fs::write(write_path, next_turn)?;
 
@@ -71,7 +84,7 @@ enum Error
 
     Bot
     {
-        bot_err: mars_bot::bot::Error
+        bot_err: bot::Error
     },
 }
 
@@ -115,9 +128,9 @@ impl From<::std::num::ParseIntError> for Error
     }
 }
 
-impl From<mars_bot::bot::Error> for Error
+impl From<bot::Error> for Error
 {
-    fn from(bot_err: mars_bot::bot::Error) -> Self
+    fn from(bot_err: bot::Error) -> Self
     {
         Error::Bot { bot_err }
     }

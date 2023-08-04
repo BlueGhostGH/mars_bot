@@ -11,9 +11,9 @@ use player::Player;
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub(crate) struct Input
 {
-    dimensions: Dimensions,
-    map: Map,
-    player: Player,
+    pub(crate) dimensions: Dimensions,
+    pub(crate) map: Map,
+    pub(crate) player: Player,
 }
 
 pub(crate) fn try_parse<In>(input: In) -> ::core::result::Result<Input, Error>

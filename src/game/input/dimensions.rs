@@ -1,8 +1,8 @@
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub(crate) struct Dimensions
 {
-    pub(super) width: usize,
-    pub(super) height: usize,
+    pub(crate) width: usize,
+    pub(crate) height: usize,
 }
 
 pub(super) fn try_parse<In>(input: In) -> ::core::result::Result<Dimensions, Error>

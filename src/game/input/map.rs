@@ -1,7 +1,7 @@
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub(crate) struct Map
 {
-    tiles: Box<[tile::Tile]>,
+    pub(crate) tiles: Box<[tile::Tile]>,
 }
 
 pub(super) fn try_parse<In>(input: In) -> ::core::result::Result<Map, Error>
@@ -84,10 +84,10 @@ impl From<tile::Error> for Error
     }
 }
 
-mod tile
+pub(crate) mod tile
 {
-    #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-    pub(super) enum Tile
+    #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
+    pub(crate) enum Tile
     {
         Air,
         Stone,
