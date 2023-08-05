@@ -1,5 +1,3 @@
-#![allow(unsafe_code)]
-
 pub(crate) trait ArrayTransposeResult
 {
     type Output;

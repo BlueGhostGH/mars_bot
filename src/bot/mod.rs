@@ -1,6 +1,9 @@
 use rand::Rng;
 
-use crate::game::{input, output, position};
+use crate::game::{
+    input::{self, player},
+    output, position,
+};
 
 mod map;
 
@@ -8,6 +11,8 @@ mod map;
 pub struct Bot
 {
     map: map::Map,
+
+    player: player::Player,
 }
 
 impl Bot
@@ -39,7 +44,7 @@ impl Bot
         Ok(output::show(output))
     }
 
-    fn moves(&mut self) -> ()
+    fn moves(&mut self) -> Option<map::path_finding::Path>
     {
         let closest = self
             .map
@@ -47,7 +52,7 @@ impl Bot
             .or_else(|| self.map.nearest_tile(map::tile::NonPlayerTile::Iron));
 
         if let Some(closest) = closest {
-            self.move_towards(closest);
+            self.move_towards(closest)
         } else {
             self.move_towards(
                 self.map
@@ -57,9 +62,10 @@ impl Bot
         }
     }
 
-    fn move_towards(&self, position: position::Position) -> ()
+    #[inline]
+    fn move_towards(&self, position: position::Position) -> Option<map::path_finding::Path>
     {
-        todo!();
+        self.map.find_path(position)
     }
 }
 
@@ -108,27 +114,35 @@ pub mod uninit
     where
         In: AsRef<str>,
     {
-        let input::Input {
+        let ref parsed_input @ input::Input {
             dimensions,
-            map: input::map::Map { tiles },
-            ..
+            map: input::map::Map { ref tiles },
+            player:
+                player @ input::player::Player {
+                    position,
+                    stats:
+                        input::player::stats::Stats {
+                            whl_level: wheel_level,
+                            ..
+                        },
+                    ..
+                },
         } = input::try_parse(input.as_ref())?;
 
-        let entries = tiles
-            .iter()
-            .copied()
-            .map(|tile| bot::map::Entry {
-                tile,
-                distance: usize::MAX,
-            })
-            .collect();
+        let entries = tiles.iter().copied().map(bot::map::Entry::init).collect();
+        let mut map = bot::map::Map {
+            dimensions,
+            entries,
 
-        let bot = bot::Bot {
-            map: bot::map::Map {
-                dimensions,
-                entries,
+            player: bot::map::Player {
+                position,
+                wheel_level,
             },
+            opponents: Vec::new(),
         };
+        map.update_with(parsed_input);
+
+        let bot = bot::Bot { map, player };
 
         let first_turn = bot.turn(input.as_ref())?;
 

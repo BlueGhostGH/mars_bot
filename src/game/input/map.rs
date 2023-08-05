@@ -90,12 +90,14 @@ pub(crate) mod tile
     pub(crate) enum Tile
     {
         Air,
-        Stone,
+        Base,
+
         Cobblestone,
-        Bedrock,
+        Stone,
         Iron,
         Osmium,
-        Base,
+
+        Bedrock,
         Acid,
 
         Player

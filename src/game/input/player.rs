@@ -1,9 +1,9 @@
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub(crate) struct Player
 {
-    position: position::Position,
-    stats: stats::Stats,
-    inventory: inventory::Inventory,
+    pub(crate) position: position::Position,
+    pub(crate) stats: stats::Stats,
+    pub(crate) inventory: inventory::Inventory,
 }
 
 pub(super) fn try_parse<In>(
@@ -153,13 +153,13 @@ pub(crate) mod position
 pub(crate) mod stats
 {
     #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
-    pub(super) struct Stats
+    pub(crate) struct Stats
     {
         hit_points: u8,
 
         drl_level: u8,
         gun_level: u8,
-        whl_level: u8,
+        pub(crate) whl_level: u8,
         cmr_level: u8,
 
         has_antenna: bool,
@@ -286,7 +286,7 @@ pub(crate) mod stats
 pub(crate) mod inventory
 {
     #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
-    pub(super) struct Inventory
+    pub(crate) struct Inventory
     {
         stone: u16,
         iron: u16,

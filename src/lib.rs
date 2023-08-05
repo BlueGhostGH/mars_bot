@@ -4,7 +4,6 @@
     iter_intersperse,
     maybe_uninit_array_assume_init
 )]
-#![deny(unsafe_code)]
 #![warn(
     clippy::all,
     explicit_outlives_requirements,
