@@ -241,9 +241,9 @@ mod direction
 
             match direction {
                 Direction::Right => position::Position { x: x + 1, y },
-                Direction::Up => position::Position { x, y: y + 1 },
+                Direction::Up => position::Position { x, y: y - 1 },
                 Direction::Left => position::Position { x: x - 1, y },
-                Direction::Down => position::Position { x, y: y - 1 },
+                Direction::Down => position::Position { x, y: y + 1 },
             }
         }
     }
