@@ -36,7 +36,7 @@ fn try_main() -> ::std::result::Result<(), Error>
         let write_path = format!("{directory_path}/game/c{id}_{round}.txt");
 
         let next_turn = match bot {
-            Some(ref bot) => bot.turn(&input)?,
+            Some(ref mut bot) => bot.turn(&input)?,
             None => {
                 let (init_bot, next_turn) = bot::uninit::try_init(input)?;
 

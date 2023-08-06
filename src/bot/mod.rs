@@ -17,11 +17,19 @@ pub struct Bot
 
 impl Bot
 {
-    pub fn turn<In>(&self, input: In) -> ::core::result::Result<String, Error>
+    pub fn turn<In>(&mut self, input: In) -> ::core::result::Result<String, Error>
     where
         In: AsRef<str>,
     {
-        let _input = input::try_parse(input.as_ref())?;
+        let ref input @ input::Input {
+            dimensions: input::dimensions::Dimensions { width, .. },
+            map: input::map::Map { ref tiles },
+            player,
+        } = input::try_parse(input.as_ref())?;
+
+        self.map.update_with(&input);
+        self.opponents.update_with(&tiles, width);
+        self.player = player;
 
         let path = try {
             let closest = self
@@ -158,10 +166,9 @@ pub mod uninit
         let mut opponents = opponents::Opponents {
             opponents: collections::HashMap::new(),
         };
-        opponents.outdate_opponents();
-        opponents.update_opponents_with(&tiles, dimensions.width);
+        opponents.update_with(&tiles, dimensions.width);
 
-        let bot = bot::Bot {
+        let mut bot = bot::Bot {
             map,
             player,
             opponents,

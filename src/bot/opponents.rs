@@ -46,29 +46,10 @@ pub(super) struct Stats
 
 impl Opponents
 {
-    pub(super) fn outdate_opponents(&mut self)
+    pub(super) fn update_with(&mut self, tiles: &[tile::Tile], width: usize)
     {
-        self.opponents.values_mut().for_each(Opponent::outdate);
-    }
+        self.outdate_opponents();
 
-    fn update_opponent_position(
-        &mut self,
-        id: u8,
-        position: position::Position,
-    ) -> collections::hash_map::Entry<'_, Id, Opponent>
-    {
-        self.opponents.entry(id).and_modify(|opponent| {
-            *opponent = Opponent {
-                position,
-
-                up_to_date: true,
-                ..*opponent
-            }
-        })
-    }
-
-    pub(super) fn update_opponents_with(&mut self, tiles: &[tile::Tile], width: usize)
-    {
         tiles
             .iter()
             .copied()
@@ -88,5 +69,26 @@ impl Opponents
                         position::Position::from_linear(index, width),
                     ));
             })
+    }
+
+    pub(super) fn outdate_opponents(&mut self)
+    {
+        self.opponents.values_mut().for_each(Opponent::outdate);
+    }
+
+    fn update_opponent_position(
+        &mut self,
+        id: u8,
+        position: position::Position,
+    ) -> collections::hash_map::Entry<'_, Id, Opponent>
+    {
+        self.opponents.entry(id).and_modify(|opponent| {
+            *opponent = Opponent {
+                position,
+
+                up_to_date: true,
+                ..*opponent
+            }
+        })
     }
 }
