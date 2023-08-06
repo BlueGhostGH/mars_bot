@@ -1,8 +1,6 @@
-use rand::Rng;
-
 use crate::game::{
     input::{self, player},
-    output, position,
+    output,
 };
 
 mod map;
@@ -25,49 +23,58 @@ impl Bot
     {
         let _input = input::try_parse(input.as_ref())?;
 
-        // TODO: magic now goes here
-        let mut rng = rand::thread_rng();
-        let direction = match rng.gen_range(1..=4) {
-            1 => output::direction::Direction::Right,
-            2 => output::direction::Direction::Up,
-            3 => output::direction::Direction::Left,
-            4 => output::direction::Direction::Down,
-            _ => unreachable!(),
+        let path = try {
+            let closest = self
+                .map
+                .nearest_tile(map::tile::NonPlayerTile::Osmium)
+                .or_else(|| self.map.nearest_tile(map::tile::NonPlayerTile::Iron));
+
+            if let Some(closest) = closest {
+                self.map.find_path(closest)?
+            } else {
+                self.map
+                    .find_path(self.map.nearest_tile(map::tile::NonPlayerTile::Fog)?)?
+            }
+        };
+
+        let (moves, _new_position, mine_direction) = match path {
+            Some(map::path_finding::Path {
+                moves,
+                end_position,
+                mine_direction,
+            }) => (Some(moves), end_position, mine_direction),
+            None => {
+                let mineable_neighbour = self.map.find_neighbour(
+                    self.player.position,
+                    [
+                        map::tile::NonPlayerTile::Osmium,
+                        map::tile::NonPlayerTile::Iron,
+                        map::tile::NonPlayerTile::Stone,
+                        map::tile::NonPlayerTile::Cobblestone,
+                    ],
+                );
+
+                (
+                    None,
+                    self.player.position,
+                    mineable_neighbour.map(|map::Neighbour { direction, .. }| direction),
+                )
+            }
+        };
+
+        let action = if let Some(direction) = mine_direction {
+            Some(output::action::Action::Mine { direction })
+        } else {
+            None
         };
 
         let output = output::Output {
-            moves: Some(output::moves::Moves {
-                mvs: [Some(direction), None, None],
-            }),
-            action: None,
+            moves,
+            action,
             upgrade: None,
         };
 
         Ok(output::show(output))
-    }
-
-    fn moves(&mut self) -> Option<map::path_finding::Path>
-    {
-        let closest = self
-            .map
-            .nearest_tile(map::tile::NonPlayerTile::Osmium)
-            .or_else(|| self.map.nearest_tile(map::tile::NonPlayerTile::Iron));
-
-        if let Some(closest) = closest {
-            self.move_towards(closest)
-        } else {
-            self.move_towards(
-                self.map
-                    .nearest_tile(map::tile::NonPlayerTile::Fog)
-                    .unwrap(), // TODO: We might just know the whole map
-            )
-        }
-    }
-
-    #[inline]
-    fn move_towards(&self, position: position::Position) -> Option<map::path_finding::Path>
-    {
-        self.map.find_path(position)
     }
 }
 

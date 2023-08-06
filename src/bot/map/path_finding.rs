@@ -8,9 +8,9 @@ use crate::{
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(in crate::bot) struct Path
 {
-    moves: moves::Moves,
-    end_position: position::Position,
-    mining_direction: Option<direction::Direction>,
+    pub(in crate::bot) moves: moves::Moves,
+    pub(in crate::bot) end_position: position::Position,
+    pub(in crate::bot) mine_direction: Option<direction::Direction>,
 }
 
 impl map::Map
@@ -19,7 +19,7 @@ impl map::Map
     {
         let mut location = to;
         let mut moves = collections::VecDeque::new();
-        let mut mining_direction = None;
+        let mut mine_direction = None;
 
         while location != self.player.position {
             let entry = self.entry_at(location)?;
@@ -43,7 +43,7 @@ impl map::Map
                 if turn_move_index == 0 {
                     moves.clear();
 
-                    mining_direction = if requires_mining {
+                    mine_direction = if requires_mining {
                         Some(direction_from_parent)
                     } else {
                         None
@@ -90,7 +90,7 @@ impl map::Map
         Some(Path {
             moves,
             end_position,
-            mining_direction,
+            mine_direction,
         })
     }
 }

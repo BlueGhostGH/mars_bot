@@ -112,6 +112,21 @@ impl Map
             position: of + direction,
         })
     }
+
+    pub(super) fn find_neighbour<const N: usize>(
+        &self,
+        of: position::Position,
+        np_tiles: [tile::NonPlayerTile; N],
+    ) -> Option<Neighbour>
+    {
+        let np_tiles = np_tiles.map(tile::Tile::from);
+        self.neighbours(of)
+            .into_iter()
+            .find(|&Neighbour { position, .. }| {
+                self.entry_at(position)
+                    .is_some_and(|Entry { tile, .. }| np_tiles.contains(tile))
+            })
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -139,8 +154,10 @@ impl Default for Entry
     fn default() -> Self
     {
         Entry {
+            tile: tile::Tile::Fog,
             distance: usize::MAX,
-            ..Default::default()
+
+            parent_data: None,
         }
     }
 }
@@ -180,7 +197,7 @@ impl<'entries> Iterator for FindTiles<'entries>
     fn next(&mut self) -> Option<Self::Item>
     {
         if let [Entry { tile, .. }, ..] = self.entries {
-            let position = if *tile == self.np_tile.into() {
+            let position = if *tile == self.np_tile {
                 Some(position::Position::from_linear(self.index, self.width))
             } else {
                 None
@@ -197,9 +214,9 @@ impl<'entries> Iterator for FindTiles<'entries>
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-struct Neighbour
+pub(super) struct Neighbour
 {
-    direction: direction::Direction,
+    pub(super) direction: direction::Direction,
     position: position::Position,
 }
 
@@ -270,6 +287,27 @@ pub(crate) mod tile
                 NonPlayerTile::Acid => Tile::Acid,
 
                 NonPlayerTile::Fog => Tile::Fog,
+            }
+        }
+    }
+
+    impl PartialEq<NonPlayerTile> for Tile
+    {
+        fn eq(&self, np_tile: &NonPlayerTile) -> bool
+        {
+            type NPTile = NonPlayerTile;
+
+            match (self, np_tile) {
+                (Tile::Air, NPTile::Air)
+                | (Tile::Base, NPTile::Base)
+                | (Tile::Cobblestone, NPTile::Cobblestone)
+                | (Tile::Stone, NPTile::Stone)
+                | (Tile::Iron, NPTile::Iron)
+                | (Tile::Osmium, NPTile::Osmium)
+                | (Tile::Bedrock, NPTile::Bedrock)
+                | (Tile::Acid, NPTile::Acid)
+                | (Tile::Fog, NPTile::Fog) => true,
+                _ => false,
             }
         }
     }

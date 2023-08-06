@@ -3,7 +3,8 @@
     error_in_core,
     inline_const,
     iter_intersperse,
-    maybe_uninit_array_assume_init
+    maybe_uninit_array_assume_init,
+    try_blocks
 )]
 #![warn(
     clippy::all,

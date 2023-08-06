@@ -52,7 +52,7 @@ pub(crate) mod moves
 {
     use crate::game::output::direction;
 
-    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    #[derive(Debug, Clone, Default, Copy, PartialEq, Eq, Hash)]
     pub(crate) struct Moves
     {
         pub(crate) mvs: [Option<direction::Direction>; 3],
