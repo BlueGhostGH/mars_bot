@@ -7,7 +7,7 @@ use crate::game::{
 
 mod map;
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Bot
 {
     map: map::Map,
@@ -108,6 +108,8 @@ impl From<input::Error> for Error
 
 pub mod uninit
 {
+    use std::collections;
+
     use crate::{bot, game::input};
 
     pub fn try_init<In>(input: In) -> ::core::result::Result<(bot::Bot, String), bot::Error>
@@ -138,7 +140,7 @@ pub mod uninit
                 position,
                 wheel_level,
             },
-            opponents: Vec::new(),
+            opponents: collections::HashMap::new(),
         };
         map.update_with(parsed_input);
 
