@@ -6,6 +6,7 @@ use crate::game::{
 };
 
 mod map;
+mod opponents;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Bot
@@ -13,6 +14,7 @@ pub struct Bot
     map: map::Map,
 
     player: player::Player,
+    opponents: opponents::Opponents,
 }
 
 impl Bot
@@ -110,14 +112,17 @@ pub mod uninit
 {
     use std::collections;
 
-    use crate::{bot, game::input};
+    use crate::{
+        bot::{self, opponents},
+        game::input,
+    };
 
     pub fn try_init<In>(input: In) -> ::core::result::Result<(bot::Bot, String), bot::Error>
     where
         In: AsRef<str>,
     {
         let ref parsed_input @ input::Input {
-            dimensions,
+            dimensions: dimensions @ input::dimensions::Dimensions { width, .. },
             map: input::map::Map { ref tiles },
             player:
                 player @ input::player::Player {
@@ -140,11 +145,20 @@ pub mod uninit
                 position,
                 wheel_level,
             },
+        };
+        map.update_with(&parsed_input);
+
+        let mut opponents = opponents::Opponents {
             opponents: collections::HashMap::new(),
         };
-        map.update_with(parsed_input);
+        opponents.outdate_opponents();
+        opponents.update_opponents_with(&tiles, dimensions.width);
 
-        let bot = bot::Bot { map, player };
+        let bot = bot::Bot {
+            map,
+            player,
+            opponents,
+        };
 
         let first_turn = bot.turn(input.as_ref())?;
 

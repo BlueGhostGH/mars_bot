@@ -25,7 +25,7 @@ where
     let dimensions = dimensions::try_parse(game.get(0).ok_or(dimensions::Error::Missing)?)?;
     let game = game.get(1..).ok_or(map::Error::Missing)?;
 
-    let map = map::try_parse(
+    let mut map = map::try_parse(
         game.get(..dimensions.height)
             .ok_or(map::Error::Incomplete {
                 kind: map::IncompleteKind::MissingRow,
@@ -63,6 +63,12 @@ where
         .map(|(index, err)| game.get(index).copied().ok_or::<player::Error>(err))
         .transpose_result()?,
     )?;
+
+    // NOTE: We treat our player's tile as `tile::Air`
+    *(unsafe {
+        map.tiles
+            .get_unchecked_mut(player.position.to_linear(dimensions.width))
+    }) = map::tile::Tile::Air;
 
     Ok(Input {
         dimensions,

@@ -1,15 +1,13 @@
 use std::collections;
 
 use crate::{
-    bot::map::{self, opponent, tile},
+    bot::map::{self, tile, Neighbour},
     game::position,
 };
 
-use super::Neighbour;
-
 impl map::Map
 {
-    pub(in crate::bot) fn flood_fill(&mut self)
+    pub(super) fn flood_fill(&mut self)
     {
         let mut queue = collections::HashSet::new();
 

@@ -1,11 +1,9 @@
 use std::collections;
 
 use crate::{
-    bot::map::{self, direction},
+    bot::map::{self, direction, ParentData},
     game::{output::moves, position},
 };
-
-use super::ParentData;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(in crate::bot) struct Path
