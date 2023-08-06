@@ -1,4 +1,5 @@
 #![feature(
+    array_try_map,
     error_in_core,
     inline_const,
     iter_intersperse,
@@ -17,8 +18,6 @@
     variant_size_differences
 )]
 #![allow(clippy::new_without_default)]
-
-mod array;
 
 pub mod bot;
 mod game;

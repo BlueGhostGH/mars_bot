@@ -1,5 +1,3 @@
-use crate::array::ArrayTransposeResult;
-
 pub(crate) mod dimensions;
 pub(crate) mod map;
 pub(crate) mod player;
@@ -60,8 +58,7 @@ where
             (1, player::stats::Error::Missing.into()),
             (2, player::inventory::Error::Missing.into()),
         ]
-        .map(|(index, err)| game.get(index).copied().ok_or::<player::Error>(err))
-        .transpose_result()?,
+        .try_map(|(index, err)| game.get(index).copied().ok_or::<player::Error>(err))?,
     )?;
 
     // NOTE: We treat our player's tile as `tile::Air`
