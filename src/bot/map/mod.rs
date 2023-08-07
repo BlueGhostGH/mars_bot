@@ -119,13 +119,14 @@ impl Map
         np_tiles: [tile::NonPlayerTile; N],
     ) -> Option<Neighbour>
     {
-        let np_tiles = np_tiles.map(tile::Tile::from);
-        self.neighbours(of)
-            .into_iter()
-            .find(|&Neighbour { position, .. }| {
-                self.entry_at(position)
-                    .is_some_and(|Entry { tile, .. }| np_tiles.contains(tile))
-            })
+        np_tiles.iter().find_map(|target| {
+            self.neighbours(of)
+                .into_iter()
+                .find(|&Neighbour { position, .. }| {
+                    self.entry_at(position)
+                        .is_some_and(|Entry { tile, .. }| tile == target)
+                })
+        })
     }
 }
 
@@ -196,20 +197,21 @@ impl<'entries> Iterator for FindTiles<'entries>
 
     fn next(&mut self) -> Option<Self::Item>
     {
-        if let [Entry { tile, .. }, ..] = self.entries {
-            let position = if *tile == self.np_tile {
-                Some(position::Position::from_linear(self.index, self.width))
+        while let Some(Entry { tile, .. }) = self.entries.take_first() {
+            if *tile == self.np_tile {
+                let position = position::Position::from_linear(self.index, self.width);
+
+                self.index += 1;
+
+                return Some(position);
             } else {
-                None
+                self.index += 1;
+
+                continue;
             };
-
-            self.entries = &self.entries[1..];
-            self.index += 1;
-
-            position
-        } else {
-            None
         }
+
+        None
     }
 }
 

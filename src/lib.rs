@@ -4,6 +4,7 @@
     inline_const,
     iter_intersperse,
     maybe_uninit_array_assume_init,
+    slice_take,
     try_blocks
 )]
 #![warn(

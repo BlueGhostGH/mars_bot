@@ -13,6 +13,8 @@ pub struct Bot
 
     player: player::Player,
     opponents: opponents::Opponents,
+
+    turn: usize,
 }
 
 impl Bot
@@ -45,30 +47,37 @@ impl Bot
             }
         };
 
-        let (moves, _new_position, mine_direction) = match path {
+        let (moves, new_position, mine_direction) = match path {
             Some(map::path_finding::Path {
                 moves,
                 end_position,
                 mine_direction,
             }) => (Some(moves), end_position, mine_direction),
-            None => {
-                let mineable_neighbour = self.map.find_neighbour(
-                    self.player.position,
-                    [
-                        map::tile::NonPlayerTile::Osmium,
-                        map::tile::NonPlayerTile::Iron,
-                        map::tile::NonPlayerTile::Stone,
-                        map::tile::NonPlayerTile::Cobblestone,
-                    ],
-                );
-
-                (
-                    None,
-                    self.player.position,
-                    mineable_neighbour.map(|map::Neighbour { direction, .. }| direction),
-                )
-            }
+            None => (None, self.player.position, None),
         };
+
+        let mine_direction = self
+            .map
+            .find_neighbour(
+                new_position,
+                [
+                    map::tile::NonPlayerTile::Osmium,
+                    map::tile::NonPlayerTile::Iron,
+                ],
+            )
+            .map(|map::Neighbour { direction, .. }| direction)
+            .or(mine_direction)
+            .or_else(|| {
+                self.map
+                    .find_neighbour(
+                        new_position,
+                        [
+                            map::tile::NonPlayerTile::Cobblestone,
+                            map::tile::NonPlayerTile::Stone,
+                        ],
+                    )
+                    .map(|map::Neighbour { direction, .. }| direction)
+            });
 
         let action = if let Some(direction) = mine_direction {
             Some(output::action::Action::Mine { direction })
@@ -76,6 +85,7 @@ impl Bot
             None
         };
 
+        self.turn += 1;
         let output = output::Output {
             moves,
             action,
@@ -172,6 +182,8 @@ pub mod uninit
             map,
             player,
             opponents,
+
+            turn: 0,
         };
 
         let first_turn = bot.turn(input.as_ref())?;
