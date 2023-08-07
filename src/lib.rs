@@ -30,8 +30,11 @@ mod opponents;
 mod position;
 
 use io::{
-    input::{self, player},
-    output,
+    input::{
+        self,
+        player::{inventory, stats},
+    },
+    output::{self, action, upgrade},
 };
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -39,10 +42,11 @@ pub struct Bot
 {
     map: map::Map,
 
-    player: player::Player,
+    player: Player,
     opponents: opponents::Opponents,
 
     turn: usize,
+    upgrade_queue_index: usize,
 }
 
 impl Bot
@@ -54,28 +58,24 @@ impl Bot
         let ref input @ input::Input {
             dimensions: input::dimensions::Dimensions { width, .. },
             map: input::map::Map { ref tiles },
-            player,
+            player:
+                input::player::Player {
+                    position,
+                    stats,
+                    inventory,
+                },
         } = input::try_parse(input.as_ref())?;
 
         self.map.update_with(input);
         self.opponents.update_with(tiles, width);
-        self.player = player;
-
-        let path = try {
-            let closest = self
-                .map
-                .nearest_tile(map::tile::NonPlayerTile::Osmium)
-                .or_else(|| self.map.nearest_tile(map::tile::NonPlayerTile::Iron));
-
-            if let Some(closest) = closest {
-                self.map.find_path(closest)?
-            } else {
-                self.map
-                    .find_path(self.map.nearest_tile(map::tile::NonPlayerTile::Fog)?)?
-            }
+        self.player = Player {
+            position,
+            stats,
+            inventory,
+            ..self.player
         };
 
-        let (moves, new_position, mine_direction) = match path {
+        let (moves, new_position, mine_direction) = match self.try_move() {
             Some(map::path_finding::Path {
                 moves,
                 end_position,
@@ -108,19 +108,84 @@ impl Bot
             });
 
         let action = if let Some(direction) = mine_direction {
-            Some(output::action::Action::Mine { direction })
+            Some(action::Action::Mine { direction })
         } else {
             None
         };
+
+        let upgrade = self.try_upgrade();
 
         self.turn += 1;
         let output = output::Output {
             moves,
             action,
-            upgrade: None,
+            upgrade,
         };
 
         Ok(output::show(output))
+    }
+
+    fn try_move(&self) -> Option<map::path_finding::Path>
+    {
+        if self.should_rtb() {
+            return self.map.find_path(self.player.base);
+        }
+
+        let closest = self
+            .map
+            .nearest_tile(map::tile::NonPlayerTile::Osmium)
+            .or_else(|| self.map.nearest_tile(map::tile::NonPlayerTile::Iron));
+
+        if let Some(closest) = closest {
+            self.map.find_path(closest)
+        } else {
+            self.map
+                .find_path(self.map.nearest_tile(map::tile::NonPlayerTile::Fog)?)
+        }
+    }
+
+    fn should_rtb(&self) -> bool
+    {
+        !self.player.can_upgrade()
+            && self
+                .target_upgrade()
+                .is_some_and(|target| self.player.can_afford(target))
+    }
+
+    fn try_upgrade(&mut self) -> Option<upgrade::Upgrade>
+    {
+        if self.can_upgrade() {
+            match self.target_upgrade() {
+                Some(upgrade @ upgrade::Upgrade::Heal) => Some(upgrade),
+                Some(upgrade) => {
+                    self.upgrade_queue_index += 1;
+
+                    Some(upgrade)
+                }
+                None => None,
+            }
+        } else {
+            None
+        }
+    }
+
+    fn can_upgrade(&self) -> bool
+    {
+        self.player.can_upgrade()
+            && self
+                .target_upgrade()
+                .is_some_and(|target| self.player.can_afford(target))
+    }
+
+    fn target_upgrade(&self) -> Option<output::upgrade::Upgrade>
+    {
+        if self.player.stats.hit_points <= 3 {
+            Some(upgrade::Upgrade::Heal)
+        } else {
+            constants::upgrade::QUEUE
+                .get(self.upgrade_queue_index)
+                .copied()
+        }
     }
 }
 
@@ -161,6 +226,53 @@ impl From<input::Error> for Error
     }
 }
 
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
+struct Player
+{
+    position: position::Position,
+    stats: stats::Stats,
+    inventory: inventory::Inventory,
+
+    base: position::Position,
+}
+
+impl Player
+{
+    fn can_upgrade(&self) -> bool
+    {
+        self.position == self.base || self.stats.has_battery
+    }
+
+    fn can_afford(&self, upgrade: upgrade::Upgrade) -> bool
+    {
+        use upgrade::Upgrade as U;
+
+        let threshold = match upgrade {
+            U::Sight => constants::upgrade::SIGHT_THRESHOLDS
+                .get(self.stats.cmr_level as usize)
+                .copied(),
+            U::Attack => constants::upgrade::ATTACK_THRESHOLDS
+                .get(self.stats.gun_level as usize)
+                .copied(),
+            U::Drill => constants::upgrade::DRILL_THRESHOLDS
+                .get(self.stats.drl_level as usize)
+                .copied(),
+            U::Movement => constants::upgrade::MOVEMENT_THRESHOLDS
+                .get(self.stats.whl_level as usize)
+                .copied(),
+
+            U::Radar => Some(constants::upgrade::RADAR_THRESHOLD),
+            U::Battery => Some(constants::upgrade::BATTERY_THRESHOLD),
+
+            U::Heal => Some(constants::upgrade::HEAL_THRESHOLD),
+        };
+
+        threshold.is_some_and(|upgrade::Cost { iron, osmium }| {
+            self.inventory.iron >= iron && self.inventory.osmium >= osmium
+        })
+    }
+}
+
 pub mod uninit
 {
     use std::collections;
@@ -175,14 +287,14 @@ pub mod uninit
             dimensions,
             map: input::map::Map { ref tiles },
             player:
-                player @ input::player::Player {
+                input::player::Player {
                     position,
                     stats:
-                        input::player::stats::Stats {
+                        stats @ input::player::stats::Stats {
                             whl_level: wheel_level,
                             ..
                         },
-                    ..
+                    inventory,
                 },
         } = input::try_parse(input.as_ref())?;
 
@@ -198,6 +310,14 @@ pub mod uninit
         };
         map.update_with(parsed_input);
 
+        let player = bot::Player {
+            position,
+            stats,
+            inventory,
+
+            base: position,
+        };
+
         let mut opponents = opponents::Opponents {
             opponents: collections::HashMap::new(),
         };
@@ -209,6 +329,7 @@ pub mod uninit
             opponents,
 
             turn: 0,
+            upgrade_queue_index: 0,
         };
 
         let first_turn = bot.turn(input.as_ref())?;

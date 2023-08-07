@@ -301,7 +301,7 @@ pub(crate) mod tile
     {
         fn eq(&self, np_tile: &NonPlayerTile) -> bool
         {
-            type NPTile = NonPlayerTile;
+            use NonPlayerTile as NPTile;
 
             matches!(
                 (self, np_tile),

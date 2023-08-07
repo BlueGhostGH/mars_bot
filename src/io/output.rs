@@ -115,25 +115,55 @@ pub(crate) mod action
 
 pub(crate) mod upgrade
 {
+    use crate::{constants::upgrade, io::input::player};
+
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
     pub(crate) enum Upgrade
     {
-        #[allow(dead_code)]
         Sight,
-        #[allow(dead_code)]
         Attack,
-        #[allow(dead_code)]
         Drill,
-        #[allow(dead_code)]
         Movement,
 
-        #[allow(dead_code)]
         Radar,
-        #[allow(dead_code)]
         Battery,
 
-        #[allow(dead_code)]
         Heal,
+    }
+
+    impl Upgrade
+    {
+        #[allow(dead_code)]
+        pub(crate) fn cost(
+            &self,
+            player::stats::Stats {
+                drl_level: drill_level,
+                gun_level,
+                whl_level: wheel_level,
+                cmr_level: camera_level,
+                ..
+            }: &player::stats::Stats,
+        ) -> Option<Cost>
+        {
+            match self {
+                Upgrade::Sight => upgrade::SIGHT_COSTS.get(*camera_level as usize).copied(),
+                Upgrade::Attack => upgrade::ATTACK_COSTS.get(*gun_level as usize).copied(),
+                Upgrade::Drill => upgrade::DRILL_COSTS.get(*drill_level as usize).copied(),
+                Upgrade::Movement => upgrade::MOVEMENT_COSTS.get(*wheel_level as usize).copied(),
+
+                Upgrade::Radar => Some(upgrade::RADAR_COST),
+                Upgrade::Battery => Some(upgrade::BATTERY_COST),
+
+                Upgrade::Heal => Some(upgrade::HEAL_COST),
+            }
+        }
+    }
+
+    #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
+    pub(crate) struct Cost
+    {
+        pub(crate) iron: u16,
+        pub(crate) osmium: u16,
     }
 
     pub(super) fn show(upgrade: Upgrade) -> String

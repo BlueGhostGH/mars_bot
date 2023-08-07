@@ -155,15 +155,15 @@ pub(crate) mod stats
     #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
     pub(crate) struct Stats
     {
-        hit_points: u8,
+        pub(crate) hit_points: u8,
 
-        drl_level: u8,
-        gun_level: u8,
+        pub(crate) drl_level: u8,
+        pub(crate) gun_level: u8,
         pub(crate) whl_level: u8,
-        cmr_level: u8,
+        pub(crate) cmr_level: u8,
 
         has_antenna: bool,
-        has_battery: bool,
+        pub(crate) has_battery: bool,
     }
 
     pub(super) fn try_parse<In>(input: In) -> ::core::result::Result<Stats, Error>
@@ -289,8 +289,8 @@ pub(crate) mod inventory
     pub(crate) struct Inventory
     {
         stone: u16,
-        iron: u16,
-        osmium: u16,
+        pub(crate) iron: u16,
+        pub(crate) osmium: u16,
     }
 
     pub(super) fn try_parse<In>(input: In) -> ::core::result::Result<Inventory, Error>
