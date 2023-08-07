@@ -1,8 +1,8 @@
 use std::collections;
 
 use crate::{
-    bot::map::{self, tile, Neighbour},
-    game::position,
+    map::{self, tile, Neighbour},
+    position,
 };
 
 impl map::Map

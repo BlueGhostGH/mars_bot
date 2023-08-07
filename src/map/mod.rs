@@ -1,6 +1,6 @@
-use crate::game::{input, position};
+use crate::{io::input, position};
 
-pub(super) use crate::game::input::dimensions::Dimensions;
+pub(super) use crate::io::input::dimensions::Dimensions;
 
 mod flood_fill;
 pub(super) mod path_finding;
@@ -224,7 +224,7 @@ pub(super) struct Neighbour
 
 mod direction
 {
-    pub(super) use crate::game::{output::direction::Direction, position};
+    pub(super) use crate::{io::output::direction::Direction, position};
 
     pub(super) const DIRECTIONS: [Direction; 4] = [
         Direction::Right,
@@ -254,7 +254,7 @@ mod direction
 pub(crate) mod tile
 {
 
-    pub(crate) use crate::game::input::map::tile::Tile;
+    pub(crate) use crate::io::input::map::tile::Tile;
 
     #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
     pub(crate) enum NonPlayerTile

@@ -50,7 +50,7 @@ pub(crate) mod direction
 
 pub(crate) mod moves
 {
-    use crate::game::output::direction;
+    use crate::io::output::direction;
 
     #[derive(Debug, Clone, Default, Copy, PartialEq, Eq, Hash)]
     pub(crate) struct Moves
@@ -72,7 +72,7 @@ pub(crate) mod moves
 
 pub(crate) mod action
 {
-    use crate::game::output::direction;
+    use crate::io::output::direction;
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
     pub(crate) enum Action

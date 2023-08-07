@@ -1,6 +1,6 @@
 use std::collections;
 
-use crate::{bot::map::tile, game::position};
+use crate::{map::tile, position};
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub(super) struct Opponents
@@ -11,7 +11,7 @@ pub(super) struct Opponents
 pub(super) type Id = u8;
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
-pub(in crate::bot) struct Opponent
+pub(crate) struct Opponent
 {
     pub(super) id: u8,
     pub(super) position: position::Position,

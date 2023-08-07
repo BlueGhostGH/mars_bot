@@ -1,21 +1,22 @@
 use std::collections;
 
 use crate::{
-    bot::map::{self, direction, ParentData},
-    game::{output::moves, position},
+    io::output::moves,
+    map::{self, direction, ParentData},
+    position,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub(in crate::bot) struct Path
+pub(crate) struct Path
 {
-    pub(in crate::bot) moves: moves::Moves,
-    pub(in crate::bot) end_position: position::Position,
-    pub(in crate::bot) mine_direction: Option<direction::Direction>,
+    pub(crate) moves: moves::Moves,
+    pub(crate) end_position: position::Position,
+    pub(crate) mine_direction: Option<direction::Direction>,
 }
 
 impl map::Map
 {
-    pub(in crate::bot) fn find_path(&self, to: position::Position) -> Option<Path>
+    pub(crate) fn find_path(&self, to: position::Position) -> Option<Path>
     {
         let mut location = to;
         let mut moves = collections::VecDeque::new();

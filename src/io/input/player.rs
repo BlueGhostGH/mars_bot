@@ -90,7 +90,7 @@ impl From<inventory::Error> for Error
 
 pub(crate) mod position
 {
-    pub(super) use crate::game::position::Position;
+    pub(super) use crate::position::Position;
 
     pub(super) fn try_parse<In>(input: In) -> ::core::result::Result<Position, Error>
     where

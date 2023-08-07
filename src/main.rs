@@ -1,6 +1,6 @@
 #![feature(fs_try_exists)]
 
-use mars_bot::bot;
+use mars_bot as bot;
 
 fn main()
 {
