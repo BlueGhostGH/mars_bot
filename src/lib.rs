@@ -21,6 +21,8 @@
 )]
 #![allow(clippy::new_without_default)]
 
+mod constants;
+
 mod io;
 mod map;
 mod opponents;

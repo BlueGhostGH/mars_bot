@@ -1,6 +1,7 @@
 use std::collections;
 
 use crate::{
+    constants::tile_weights,
     map::{self, tile, Neighbour},
     position,
 };
@@ -137,15 +138,17 @@ impl ViableTile
     fn weight(&self) -> usize
     {
         match self {
-            ViableTile::Air | ViableTile::Base => 5,
+            ViableTile::Air => tile_weights::AIR,
+            ViableTile::Base => tile_weights::BASE,
 
-            ViableTile::Osmium => 2,
-            ViableTile::Iron => 4,
-            ViableTile::Stone | ViableTile::Cobblestone => 8,
+            ViableTile::Osmium => tile_weights::OSMIUM,
+            ViableTile::Iron => tile_weights::IRON,
+            ViableTile::Stone => tile_weights::STONE,
+            ViableTile::Cobblestone => tile_weights::COBBLESTONE,
 
-            ViableTile::Player => 30,
+            ViableTile::Player => tile_weights::PLAYER,
 
-            ViableTile::Fog => 6,
+            ViableTile::Fog => tile_weights::FOG,
         }
     }
 }
