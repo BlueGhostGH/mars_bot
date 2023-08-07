@@ -84,10 +84,15 @@ impl Bot
             None => (None, self.player.position, None),
         };
 
+        self.player = Player {
+            position: new_position,
+            ..self.player
+        };
+
         let mine_direction = self
             .map
             .find_neighbour(
-                new_position,
+                self.player.position,
                 [
                     map::tile::NonPlayerTile::Osmium,
                     map::tile::NonPlayerTile::Iron,
@@ -98,7 +103,7 @@ impl Bot
             .or_else(|| {
                 self.map
                     .find_neighbour(
-                        new_position,
+                        self.player.position,
                         [
                             map::tile::NonPlayerTile::Cobblestone,
                             map::tile::NonPlayerTile::Stone,
