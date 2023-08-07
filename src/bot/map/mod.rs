@@ -156,7 +156,7 @@ impl Default for Entry
     {
         Entry {
             tile: tile::Tile::Fog,
-            distance: usize::MAX,
+            distance: usize::MAX / 2,
 
             parent_data: None,
         }
