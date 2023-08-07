@@ -57,8 +57,8 @@ impl Bot
             player,
         } = input::try_parse(input.as_ref())?;
 
-        self.map.update_with(&input);
-        self.opponents.update_with(&tiles, width);
+        self.map.update_with(input);
+        self.opponents.update_with(tiles, width);
         self.player = player;
 
         let path = try {
@@ -172,7 +172,7 @@ pub mod uninit
         In: AsRef<str>,
     {
         let ref parsed_input @ input::Input {
-            dimensions: dimensions @ input::dimensions::Dimensions { width, .. },
+            dimensions,
             map: input::map::Map { ref tiles },
             player:
                 player @ input::player::Player {
@@ -196,12 +196,12 @@ pub mod uninit
                 wheel_level,
             },
         };
-        map.update_with(&parsed_input);
+        map.update_with(parsed_input);
 
         let mut opponents = opponents::Opponents {
             opponents: collections::HashMap::new(),
         };
-        opponents.update_with(&tiles, dimensions.width);
+        opponents.update_with(tiles, dimensions.width);
 
         let mut bot = bot::Bot {
             map,

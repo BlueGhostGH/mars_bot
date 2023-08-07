@@ -20,7 +20,7 @@ where
 {
     let game = input.as_ref().trim().lines().collect::<Vec<_>>();
 
-    let dimensions = dimensions::try_parse(game.get(0).ok_or(dimensions::Error::Missing)?)?;
+    let dimensions = dimensions::try_parse(game.first().ok_or(dimensions::Error::Missing)?)?;
     let game = game.get(1..).ok_or(map::Error::Missing)?;
 
     let mut map = map::try_parse(
@@ -28,7 +28,7 @@ where
             .ok_or(map::Error::Incomplete {
                 kind: map::IncompleteKind::MissingRow,
             })?
-            .into_iter()
+            .iter()
             .map(|row| {
                 let mut row = row
                     .bytes()
@@ -47,7 +47,6 @@ where
                     })
                 }
             })
-            .intersperse(Ok(' '.into()))
             .collect::<Result<String, map::Error>>()?,
     )?;
     let game = game.get(dimensions.height..).unwrap_or_default();

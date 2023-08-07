@@ -259,7 +259,9 @@ pub(crate) mod tile
     #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
     pub(crate) enum NonPlayerTile
     {
+        #[allow(dead_code)]
         Air,
+        #[allow(dead_code)]
         Base,
 
         Cobblestone,
@@ -267,7 +269,9 @@ pub(crate) mod tile
         Iron,
         Osmium,
 
+        #[allow(dead_code)]
         Bedrock,
+        #[allow(dead_code)]
         Acid,
 
         #[default]
@@ -299,18 +303,18 @@ pub(crate) mod tile
         {
             type NPTile = NonPlayerTile;
 
-            match (self, np_tile) {
+            matches!(
+                (self, np_tile),
                 (Tile::Air, NPTile::Air)
-                | (Tile::Base, NPTile::Base)
-                | (Tile::Cobblestone, NPTile::Cobblestone)
-                | (Tile::Stone, NPTile::Stone)
-                | (Tile::Iron, NPTile::Iron)
-                | (Tile::Osmium, NPTile::Osmium)
-                | (Tile::Bedrock, NPTile::Bedrock)
-                | (Tile::Acid, NPTile::Acid)
-                | (Tile::Fog, NPTile::Fog) => true,
-                _ => false,
-            }
+                    | (Tile::Base, NPTile::Base)
+                    | (Tile::Cobblestone, NPTile::Cobblestone)
+                    | (Tile::Stone, NPTile::Stone)
+                    | (Tile::Iron, NPTile::Iron)
+                    | (Tile::Osmium, NPTile::Osmium)
+                    | (Tile::Bedrock, NPTile::Bedrock)
+                    | (Tile::Acid, NPTile::Acid)
+                    | (Tile::Fog, NPTile::Fog)
+            )
         }
     }
 }

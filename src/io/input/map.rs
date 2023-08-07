@@ -12,10 +12,6 @@ where
         tiles: input
             .as_ref()
             .bytes()
-            .filter_map(|by| match by {
-                b' ' => None,
-                _ => Some(by),
-            })
             .map(tile::try_parse)
             .collect::<Result<Box<[_]>, tile::Error>>()?,
     })
@@ -121,11 +117,7 @@ pub(crate) mod tile
             b'E' => Tile::Base,
             b'F' => Tile::Acid,
 
-            b'0'..=b'9' => Tile::Player {
-                // SAFETY: since our id is in the range 0..=9,
-                // converting to an u8 will never fail
-                id: u8::try_from(input).unwrap() - 48,
-            },
+            b'0'..=b'9' => Tile::Player { id: input - 48 },
 
             b'?' => Tile::Fog,
             tile => return Err(Error::Unknown { tile }),

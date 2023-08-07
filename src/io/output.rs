@@ -20,7 +20,7 @@ pub(crate) fn show(
         upgrade.map(upgrade::show),
     ]
     .into_iter()
-    .filter_map(::core::convert::identity)
+    .flatten()
     .intersperse("\n".into())
     .collect()
 }
@@ -77,10 +77,12 @@ pub(crate) mod action
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
     pub(crate) enum Action
     {
+        #[allow(dead_code)]
         Attack
         {
             direction: direction::Direction
         },
+        #[allow(dead_code)]
         Scan
         {
             direction: direction::Direction
@@ -89,6 +91,7 @@ pub(crate) mod action
         {
             direction: direction::Direction
         },
+        #[allow(dead_code)]
         Place
         {
             direction: direction::Direction
@@ -115,14 +118,21 @@ pub(crate) mod upgrade
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
     pub(crate) enum Upgrade
     {
+        #[allow(dead_code)]
         Sight,
+        #[allow(dead_code)]
         Attack,
+        #[allow(dead_code)]
         Drill,
+        #[allow(dead_code)]
         Movement,
 
+        #[allow(dead_code)]
         Radar,
+        #[allow(dead_code)]
         Battery,
 
+        #[allow(dead_code)]
         Heal,
     }
 
