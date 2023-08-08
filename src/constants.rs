@@ -62,3 +62,9 @@ pub(crate) mod upgrade
     pub(crate) const HEAL_COST: upgrade::Cost = cost(0, 1);
     pub(crate) const HEAL_THRESHOLD: upgrade::Cost = cost(0, 1);
 }
+
+pub(crate) mod acid
+{
+    pub(crate) const START_TURN: usize = 150;
+    pub(crate) const TICK_RATE: usize = 2;
+}

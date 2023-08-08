@@ -66,6 +66,7 @@ impl Bot
                 },
         } = input::try_parse(input.as_ref())?;
 
+        self.map.update_acid(self.acid_level());
         self.map.update_with(input);
         self.opponents.update_with(tiles, width);
         self.player = Player {
@@ -190,6 +191,15 @@ impl Bot
             constants::upgrade::QUEUE
                 .get(self.upgrade_queue_index)
                 .copied()
+        }
+    }
+
+    fn acid_level(&self) -> usize
+    {
+        if self.turn >= constants::acid::START_TURN {
+            (self.turn - constants::acid::START_TURN) / constants::acid::TICK_RATE + 1
+        } else {
+            0
         }
     }
 }

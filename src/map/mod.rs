@@ -128,6 +128,31 @@ impl Map
                 })
         })
     }
+
+    pub(super) fn update_acid(&mut self, level: usize)
+    {
+        let (level, width, height) = (
+            level as _,
+            self.dimensions.width as _,
+            self.dimensions.height as _,
+        );
+
+        let top = (0..width).flat_map(|x| (0..level).map(move |y| (x, y)));
+        let bottom = (0..width).flat_map(|x| (height - level..height).map(move |y| (x, y)));
+        let left_middle = (0..level).flat_map(|x| (level..height - level).map(move |y| (x, y)));
+        let right_middle =
+            (width - level..width).flat_map(|x| (level..height - level).map(move |y| (x, y)));
+
+        top.chain(bottom)
+            .chain(left_middle)
+            .chain(right_middle)
+            .map(|(x, y)| position::Position { x, y })
+            .for_each(|position| {
+                let entry = unsafe { self.entry_at_unchecked_mut(position) };
+
+                entry.tile = tile::Tile::Acid;
+            });
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
