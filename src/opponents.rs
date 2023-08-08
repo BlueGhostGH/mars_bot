@@ -13,7 +13,7 @@ pub(super) type Id = u8;
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub(crate) struct Opponent
 {
-    pub(super) id: u8,
+    pub(super) id: Id,
     pub(super) position: position::Position,
     pub(super) stats: Stats,
 
@@ -27,6 +27,8 @@ impl Opponent
         Opponent {
             id,
             position,
+
+            up_to_date: true,
             ..Default::default()
         }
     }
@@ -35,18 +37,31 @@ impl Opponent
     {
         self.up_to_date = false;
     }
-}
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
-pub(super) struct Stats
-{
-    pub(super) gun_level: u8,
-    pub(super) wheel_level: u8,
+    fn update(&mut self, position: position::Position)
+    {
+        let wheel_level = if self.up_to_date {
+            self.position.manhattan_distance(&position)
+        } else {
+            1
+        } as _;
+
+        *self = Opponent {
+            id: self.id,
+            position,
+            stats: Stats {
+                gun_level: self.stats.gun_level,
+                wheel_level,
+            },
+
+            up_to_date: true,
+        };
+    }
 }
 
 impl Opponents
 {
-    pub(super) fn update_with(&mut self, tiles: &[tile::Tile], width: usize)
+    pub(super) fn update_with(&mut self, tiles: &[tile::Tile], stride: usize)
     {
         self.outdate_opponents();
 
@@ -56,39 +71,40 @@ impl Opponents
             .enumerate()
             .filter_map(|(index, tile)| {
                 if let tile::Tile::Player { id } = tile {
-                    Some((index, id))
+                    Some((position::Position::from_linear(index, stride), id))
                 } else {
                     None
                 }
             })
-            .for_each(|(index, id)| {
+            .for_each(|(position, id)| {
                 let _opponent = self
-                    .update_opponent_position(id, position::Position::from_linear(index, width))
-                    .or_insert(Opponent::init_with_position(
-                        id,
-                        position::Position::from_linear(index, width),
-                    ));
-            })
+                    .opponents
+                    .entry(id)
+                    .and_modify(|opponent| opponent.update(position))
+                    .or_insert(Opponent::init_with_position(id, position));
+            });
     }
 
     pub(super) fn outdate_opponents(&mut self)
     {
         self.opponents.values_mut().for_each(Opponent::outdate);
     }
+}
 
-    fn update_opponent_position(
-        &mut self,
-        id: u8,
-        position: position::Position,
-    ) -> collections::hash_map::Entry<'_, Id, Opponent>
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(super) struct Stats
+{
+    pub(super) gun_level: u8,
+    pub(super) wheel_level: u8,
+}
+
+impl Default for Stats
+{
+    fn default() -> Self
     {
-        self.opponents.entry(id).and_modify(|opponent| {
-            *opponent = Opponent {
-                position,
-
-                up_to_date: true,
-                ..*opponent
-            }
-        })
+        Stats {
+            gun_level: 1,
+            wheel_level: 1,
+        }
     }
 }
