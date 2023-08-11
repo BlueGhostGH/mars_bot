@@ -117,6 +117,8 @@ enum ViableTile
     Iron,
     Osmium,
 
+    Acid,
+
     Player,
 
     #[default]
@@ -131,7 +133,11 @@ impl ViableTile
             ViableTile::Stone | ViableTile::Cobblestone | ViableTile::Iron | ViableTile::Osmium => {
                 true
             }
-            ViableTile::Fog | ViableTile::Air | ViableTile::Base | ViableTile::Player => false,
+            ViableTile::Fog
+            | ViableTile::Air
+            | ViableTile::Base
+            | ViableTile::Acid
+            | ViableTile::Player => false,
         }
     }
 
@@ -145,6 +151,8 @@ impl ViableTile
             ViableTile::Iron => tile_weights::IRON,
             ViableTile::Stone => tile_weights::STONE,
             ViableTile::Cobblestone => tile_weights::COBBLESTONE,
+
+            ViableTile::Acid => tile_weights::ACID,
 
             ViableTile::Player => tile_weights::PLAYER,
 
@@ -167,6 +175,8 @@ impl TryFrom<tile::Tile> for ViableTile
             tile::Tile::Stone => Ok(ViableTile::Stone),
             tile::Tile::Iron => Ok(ViableTile::Iron),
             tile::Tile::Osmium => Ok(ViableTile::Osmium),
+
+            tile::Tile::Acid => Ok(ViableTile::Acid),
 
             tile::Tile::Player { .. } => Ok(ViableTile::Player),
 

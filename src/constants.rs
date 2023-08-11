@@ -10,6 +10,8 @@ pub(crate) mod tile_weights
     pub(crate) const STONE: usize = 8;
     pub(crate) const COBBLESTONE: usize = 8;
 
+    pub(crate) const ACID: usize = 100;
+
     pub(crate) const PLAYER: usize = 30;
 
     pub(crate) const FOG: usize = 6;
