@@ -2,8 +2,8 @@ use crate::{io::input, position};
 
 pub(super) use crate::io::input::dimensions::Dimensions;
 
+pub(super) mod find_path;
 mod flood_fill;
-pub(super) mod path_finding;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub(super) struct Map
@@ -82,7 +82,15 @@ impl Map
             .get_unchecked_mut(position.to_linear(self.dimensions.width))
     }
 
-    fn distance_to(&self, position: position::Position) -> Option<usize>
+    pub(super) fn center(&self) -> position::Position
+    {
+        position::Position {
+            x: (self.dimensions.width / 2) as _,
+            y: (self.dimensions.height / 2) as _,
+        }
+    }
+
+    pub(super) fn distance_to(&self, position: position::Position) -> Option<usize>
     {
         self.entry_at(position)
             .map(|Entry { distance, .. }| *distance)
@@ -105,7 +113,7 @@ impl Map
             .min_by_key(|&position| self.distance_to(position))
     }
 
-    fn neighbours(&self, of: position::Position) -> [Neighbour; 4]
+    pub(super) fn neighbours(&self, of: position::Position) -> [Neighbour; 4]
     {
         direction::DIRECTIONS.map(|direction| Neighbour {
             direction,
@@ -244,7 +252,7 @@ impl<'entries> Iterator for FindTiles<'entries>
 pub(super) struct Neighbour
 {
     pub(super) direction: direction::Direction,
-    position: position::Position,
+    pub(super) position: position::Position,
 }
 
 mod direction

@@ -77,7 +77,7 @@ impl Bot
         };
 
         let (moves, new_position, mine_direction) = match self.try_move() {
-            Some(map::path_finding::Path {
+            Some(map::find_path::Path {
                 moves,
                 end_position,
                 mine_direction,
@@ -131,23 +131,40 @@ impl Bot
         Ok(output::show(output))
     }
 
-    fn try_move(&self) -> Option<map::path_finding::Path>
+    fn try_move(&self) -> Option<map::find_path::Path>
     {
+        if self.acid_level() > 0 {
+            let center = self.map.center();
+
+            let map::Neighbour {
+                direction: _direction_from_center, // NOTE: will be used when caging is implemented
+                position: closest,
+            } = self
+                .map
+                .neighbours(center)
+                .iter()
+                .min_by_key(|map::Neighbour { position, .. }| self.map.distance_to(*position))
+                .copied()
+                // (UN)SAFETY: In most cases, the map
+                // won't be just the centre tile
+                .unwrap();
+
+            // TODO: Implement caging mechanism
+
+            return self.map.find_path(closest);
+        }
+
         if self.should_rtb() {
             return self.map.find_path(self.player.base);
         }
 
-        let closest = self
+        let nearest = self
             .map
             .nearest_tile(map::tile::NonPlayerTile::Osmium)
-            .or_else(|| self.map.nearest_tile(map::tile::NonPlayerTile::Iron));
+            .or_else(|| self.map.nearest_tile(map::tile::NonPlayerTile::Iron))
+            .or_else(|| self.map.nearest_tile(map::tile::NonPlayerTile::Fog));
 
-        if let Some(closest) = closest {
-            self.map.find_path(closest)
-        } else {
-            self.map
-                .find_path(self.map.nearest_tile(map::tile::NonPlayerTile::Fog)?)
-        }
+        self.map.find_path(nearest?)
     }
 
     fn should_rtb(&self) -> bool
