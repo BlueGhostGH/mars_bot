@@ -47,6 +47,8 @@ pub struct Bot
 
     turn: usize,
     upgrade_queue_index: usize,
+
+    cage: caging::Cage,
 }
 
 impl Bot
@@ -131,14 +133,14 @@ impl Bot
         Ok(output::show(output))
     }
 
-    fn try_move(&self) -> Option<map::find_path::Path>
+    fn try_move(&mut self) -> Option<map::find_path::Path>
     {
         if self.acid_level() > 0 {
             let center = self.map.center();
 
             let map::Neighbour {
-                direction: _direction_from_center, // NOTE: will be used when caging is implemented
-                position: closest,
+                direction: center_direction,
+                position: entry,
             } = self
                 .map
                 .neighbours(center)
@@ -149,9 +151,88 @@ impl Bot
                 // won't be just the centre tile
                 .unwrap();
 
-            // TODO: Implement caging mechanism
+            if entry == self.player.position && self.cage.entryway.is_none() {
+                self.cage.entryway = Some(caging::Entryway {
+                    center_direction,
+                    entry,
+                });
 
-            return self.map.find_path(closest);
+                let smaller_dimension = self.map.dimensions.width.min(self.map.dimensions.height);
+                self.map.update_acid((smaller_dimension) / 2);
+            }
+
+            let next = if let Some(caging::Entryway {
+                center_direction,
+                entry,
+            }) = self.cage.entryway
+            {
+                let third_spot = center + center_direction.opposite();
+
+                if self.cage.step == 4 {
+                    // TODO: Implement going after players once box is built
+
+                    None
+                } else if self.player.position == entry
+                    && self.map.tile_at_is(center, map::tile::NonPlayerTile::Air)
+                    && self.map.tile_at_is(
+                        entry + center_direction.clockwise(),
+                        map::tile::NonPlayerTile::is_obstacle,
+                    )
+                    && self.map.tile_at_is(
+                        entry + center_direction.counter_clockwise(),
+                        map::tile::NonPlayerTile::is_obstacle,
+                    )
+                {
+                    self.cage.step = 1;
+
+                    Some(center)
+                } else if self.player.position == center
+                    && self
+                        .map
+                        .tile_at_is(third_spot, map::tile::NonPlayerTile::Air)
+                    && self.map.tile_at_is(
+                        center + center_direction.clockwise(),
+                        map::tile::NonPlayerTile::Air,
+                    )
+                    && self.map.tile_at_is(
+                        center + center_direction.counter_clockwise(),
+                        map::tile::NonPlayerTile::Air,
+                    )
+                {
+                    if self.cage.step == 1 {
+                        self.cage.step = 2;
+
+                        Some(third_spot)
+                    } else {
+                        self.cage.step = 4;
+
+                        None
+                    }
+                } else if self.player.position == third_spot
+                    && self.map.tile_at_is(
+                        third_spot + center_direction.clockwise(),
+                        map::tile::NonPlayerTile::is_obstacle,
+                    )
+                    && self.map.tile_at_is(
+                        third_spot + center_direction.counter_clockwise(),
+                        map::tile::NonPlayerTile::is_obstacle,
+                    )
+                {
+                    self.cage.step = 3;
+
+                    Some(center)
+                } else {
+                    if self.cage.step == 3 {
+                        self.cage.step = 4;
+                    }
+
+                    None
+                }
+            } else {
+                Some(entry)
+            };
+
+            return self.map.find_path(next?);
         }
 
         if self.should_rtb() {
@@ -305,11 +386,30 @@ impl Player
     }
 }
 
+mod caging
+{
+    use crate::{io::output, position};
+
+    #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
+    pub(super) struct Cage
+    {
+        pub(super) entryway: Option<Entryway>,
+        pub(super) step: usize,
+    }
+
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    pub(super) struct Entryway
+    {
+        pub(super) center_direction: output::direction::Direction,
+        pub(super) entry: position::Position,
+    }
+}
+
 pub mod uninit
 {
     use std::collections;
 
-    use crate::{self as bot, io::input, opponents};
+    use crate::{self as bot, caging, io::input, opponents};
 
     pub fn try_init<In>(input: In) -> ::core::result::Result<(bot::Bot, String), bot::Error>
     where
@@ -355,6 +455,11 @@ pub mod uninit
         };
         opponents.update_with(tiles, dimensions.width);
 
+        let cage = caging::Cage {
+            entryway: None,
+            step: 0,
+        };
+
         let mut bot = bot::Bot {
             map,
             player,
@@ -362,6 +467,8 @@ pub mod uninit
 
             turn: 0,
             upgrade_queue_index: 0,
+
+            cage,
         };
 
         let first_turn = bot.turn(input.as_ref())?;

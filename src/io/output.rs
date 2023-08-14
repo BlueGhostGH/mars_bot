@@ -37,6 +37,39 @@ pub(crate) mod direction
         Down,
     }
 
+    impl Direction
+    {
+        pub(crate) fn opposite(self) -> Self
+        {
+            match self {
+                Direction::Right => Direction::Left,
+                Direction::Up => Direction::Down,
+                Direction::Left => Direction::Right,
+                Direction::Down => Direction::Up,
+            }
+        }
+
+        pub(crate) fn clockwise(self) -> Self
+        {
+            match self {
+                Direction::Right => Direction::Down,
+                Direction::Up => Direction::Right,
+                Direction::Left => Direction::Up,
+                Direction::Down => Direction::Left,
+            }
+        }
+
+        pub(crate) fn counter_clockwise(self) -> Self
+        {
+            match self {
+                Direction::Right => Direction::Up,
+                Direction::Up => Direction::Left,
+                Direction::Left => Direction::Down,
+                Direction::Down => Direction::Right,
+            }
+        }
+    }
+
     pub(super) fn show(direction: Direction) -> char
     {
         match direction {
