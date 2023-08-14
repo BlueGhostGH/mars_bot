@@ -79,7 +79,7 @@ impl Bot
         };
 
         let (moves, new_position, mine_direction) = match self.try_move() {
-            Some(map::find_path::Path {
+            Some(map::Path {
                 moves,
                 end_position,
                 mine_direction,
@@ -133,7 +133,7 @@ impl Bot
         Ok(output::show(output))
     }
 
-    fn try_move(&mut self) -> Option<map::find_path::Path>
+    fn try_move(&mut self) -> Option<map::Path>
     {
         if self.acid_level() > 0 {
             let center = self.map.center();
@@ -232,11 +232,17 @@ impl Bot
                 Some(entry)
             };
 
-            return self.map.find_path(next?);
+            return self
+                .map
+                .find_path(self.player.position, next?, self.player.stats.whl_level);
         }
 
         if self.should_rtb() {
-            return self.map.find_path(self.player.base);
+            return self.map.find_path(
+                self.player.position,
+                self.player.base,
+                self.player.stats.whl_level,
+            );
         }
 
         let nearest = self
@@ -245,7 +251,8 @@ impl Bot
             .or_else(|| self.map.nearest_tile(map::tile::NonPlayerTile::Iron))
             .or_else(|| self.map.nearest_tile(map::tile::NonPlayerTile::Fog));
 
-        self.map.find_path(nearest?)
+        self.map
+            .find_path(self.player.position, nearest?, self.player.stats.whl_level)
     }
 
     fn should_rtb(&self) -> bool
@@ -421,11 +428,7 @@ pub mod uninit
             player:
                 input::player::Player {
                     position,
-                    stats:
-                        stats @ input::player::stats::Stats {
-                            whl_level: wheel_level,
-                            ..
-                        },
+                    stats,
                     inventory,
                 },
         } = input::try_parse(input.as_ref())?;
@@ -434,11 +437,6 @@ pub mod uninit
         let mut map = bot::map::Map {
             dimensions,
             entries,
-
-            player: bot::map::Player {
-                position,
-                wheel_level,
-            },
         };
         map.update_with(parsed_input);
 
