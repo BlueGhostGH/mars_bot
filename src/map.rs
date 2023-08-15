@@ -69,7 +69,11 @@ impl Map
                 // within bounds, this entry exists
                 let entry @ &mut Entry { tile, .. } =
                     unsafe { self.entry_at_unchecked_mut(position) };
-                entry.tile = tile;
+
+                *entry = Entry {
+                    tile,
+                    ..Default::default()
+                };
             }
         }
 
