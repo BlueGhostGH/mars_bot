@@ -1,9 +1,11 @@
+use crate::game;
+
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub(crate) struct Output
 {
     pub(crate) moves: Option<moves::Moves>,
-    pub(crate) action: Option<action::Action>,
-    pub(crate) upgrade: Option<upgrade::Upgrade>,
+    pub(crate) action: Option<game::Action>,
+    pub(crate) upgrade: Option<game::Upgrade>,
 }
 
 pub(crate) fn show(
@@ -27,68 +29,29 @@ pub(crate) fn show(
 
 pub(crate) mod direction
 {
-    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-    // NOTE: Defined in trigonometric order
-    pub(crate) enum Direction
+    use crate::game;
+
+    pub(super) fn show(direction: game::Direction) -> char
     {
-        Right,
-        Up,
-        Left,
-        Down,
-    }
+        use game::Direction as D;
 
-    impl Direction
-    {
-        pub(crate) fn opposite(self) -> Self
-        {
-            match self {
-                Direction::Right => Direction::Left,
-                Direction::Up => Direction::Down,
-                Direction::Left => Direction::Right,
-                Direction::Down => Direction::Up,
-            }
-        }
-
-        pub(crate) fn clockwise(self) -> Self
-        {
-            match self {
-                Direction::Right => Direction::Down,
-                Direction::Up => Direction::Right,
-                Direction::Left => Direction::Up,
-                Direction::Down => Direction::Left,
-            }
-        }
-
-        pub(crate) fn counter_clockwise(self) -> Self
-        {
-            match self {
-                Direction::Right => Direction::Up,
-                Direction::Up => Direction::Left,
-                Direction::Left => Direction::Down,
-                Direction::Down => Direction::Right,
-            }
-        }
-    }
-
-    pub(super) fn show(direction: Direction) -> char
-    {
         match direction {
-            Direction::Right => 'R',
-            Direction::Up => 'U',
-            Direction::Left => 'L',
-            Direction::Down => 'D',
+            D::Right => 'R',
+            D::Up => 'U',
+            D::Left => 'L',
+            D::Down => 'D',
         }
     }
 }
 
 pub(crate) mod moves
 {
-    use crate::io::output::direction;
+    use crate::{game, io::output::direction};
 
     #[derive(Debug, Clone, Default, Copy, PartialEq, Eq, Hash)]
     pub(crate) struct Moves
     {
-        pub(crate) mvs: [Option<direction::Direction>; 3],
+        pub(crate) mvs: [Option<game::Direction>; 3],
     }
 
     pub(super) fn show(moves: Moves) -> String
@@ -105,39 +68,17 @@ pub(crate) mod moves
 
 pub(crate) mod action
 {
-    use crate::io::output::direction;
+    use crate::{game, io::output::direction};
 
-    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-    pub(crate) enum Action
+    pub(super) fn show(action: game::Action) -> String
     {
-        #[allow(dead_code)]
-        Attack
-        {
-            direction: direction::Direction
-        },
-        #[allow(dead_code)]
-        Scan
-        {
-            direction: direction::Direction
-        },
-        Mine
-        {
-            direction: direction::Direction
-        },
-        #[allow(dead_code)]
-        Place
-        {
-            direction: direction::Direction
-        },
-    }
+        use game::Action as A;
 
-    pub(super) fn show(action: Action) -> String
-    {
         let (action, direction) = match action {
-            Action::Attack { direction } => ('A', direction),
-            Action::Scan { direction } => ('S', direction),
-            Action::Mine { direction } => ('M', direction),
-            Action::Place { direction } => ('P', direction),
+            A::Attack { direction } => ('A', direction),
+            A::Scan { direction } => ('S', direction),
+            A::Mine { direction } => ('M', direction),
+            A::Place { direction } => ('P', direction),
         };
 
         [action, ' ', direction::show(direction)]
@@ -146,71 +87,24 @@ pub(crate) mod action
     }
 }
 
-pub(crate) mod upgrade
+mod upgrade
 {
-    use crate::{constants::upgrade, io::input::player};
+    use crate::game;
 
-    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-    pub(crate) enum Upgrade
+    pub(super) fn show(upgrade: game::Upgrade) -> String
     {
-        Sight,
-        Attack,
-        Drill,
-        Movement,
+        use game::Upgrade as U;
 
-        Radar,
-        Battery,
-
-        Heal,
-    }
-
-    impl Upgrade
-    {
-        #[allow(dead_code)]
-        pub(crate) fn cost(
-            &self,
-            player::stats::Stats {
-                drl_level: drill_level,
-                gun_level,
-                whl_level: wheel_level,
-                cmr_level: camera_level,
-                ..
-            }: &player::stats::Stats,
-        ) -> Option<Cost>
-        {
-            match self {
-                Upgrade::Sight => upgrade::SIGHT_COSTS.get(*camera_level as usize).copied(),
-                Upgrade::Attack => upgrade::ATTACK_COSTS.get(*gun_level as usize).copied(),
-                Upgrade::Drill => upgrade::DRILL_COSTS.get(*drill_level as usize).copied(),
-                Upgrade::Movement => upgrade::MOVEMENT_COSTS.get(*wheel_level as usize).copied(),
-
-                Upgrade::Radar => Some(upgrade::RADAR_COST),
-                Upgrade::Battery => Some(upgrade::BATTERY_COST),
-
-                Upgrade::Heal => Some(upgrade::HEAL_COST),
-            }
-        }
-    }
-
-    #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
-    pub(crate) struct Cost
-    {
-        pub(crate) iron: u16,
-        pub(crate) osmium: u16,
-    }
-
-    pub(super) fn show(upgrade: Upgrade) -> String
-    {
         let upgrade = match upgrade {
-            Upgrade::Sight => 'S',
-            Upgrade::Attack => 'A',
-            Upgrade::Drill => 'D',
-            Upgrade::Movement => 'M',
+            U::Sight => 'S',
+            U::Rifle => 'A',
+            U::Drill => 'D',
+            U::Wheel => 'M',
 
-            Upgrade::Radar => 'R',
-            Upgrade::Battery => 'B',
+            U::Antenna => 'R',
+            U::Battery => 'B',
 
-            Upgrade::Heal => 'H',
+            U::Heal => 'H',
         };
 
         ['B', ' ', upgrade].into_iter().collect()

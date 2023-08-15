@@ -19,7 +19,7 @@ pub(crate) mod tile_weights
 
 pub(crate) mod upgrade
 {
-    use crate::io::output::upgrade;
+    use crate::game::upgrade;
 
     pub(crate) const QUEUE: [upgrade::Upgrade; 10] = const {
         use upgrade::Upgrade as U;
@@ -27,12 +27,12 @@ pub(crate) mod upgrade
         [
             U::Battery,
             U::Sight,
-            U::Movement,
-            U::Attack,
+            U::Wheel,
+            U::Rifle,
             U::Sight,
-            U::Attack,
-            U::Movement,
-            U::Radar,
+            U::Rifle,
+            U::Wheel,
+            U::Antenna,
             U::Drill,
             U::Drill,
         ]
@@ -46,18 +46,18 @@ pub(crate) mod upgrade
     pub(crate) const SIGHT_COSTS: [upgrade::Cost; 3] = [cost(0, 0), cost(3, 0), cost(6, 1)];
     pub(crate) const SIGHT_THRESHOLDS: [upgrade::Cost; 3] = [cost(0, 0), cost(3, 0), cost(6, 1)];
 
-    pub(crate) const ATTACK_COSTS: [upgrade::Cost; 3] = [cost(0, 0), cost(3, 0), cost(6, 1)];
-    pub(crate) const ATTACK_THRESHOLDS: [upgrade::Cost; 3] = [cost(0, 0), cost(3, 0), cost(6, 1)];
+    pub(crate) const RIFLE_COSTS: [upgrade::Cost; 3] = [cost(0, 0), cost(3, 0), cost(6, 1)];
+    pub(crate) const RIFLE_THRESHOLDS: [upgrade::Cost; 3] = [cost(0, 0), cost(3, 0), cost(6, 1)];
 
     pub(crate) const DRILL_COSTS: [upgrade::Cost; 3] = [cost(0, 0), cost(3, 0), cost(6, 1)];
     pub(crate) const DRILL_THRESHOLDS: [upgrade::Cost; 3] =
         [cost(0, 0), cost(3, 100), cost(6, 100)];
 
-    pub(crate) const MOVEMENT_COSTS: [upgrade::Cost; 3] = [cost(0, 0), cost(3, 0), cost(6, 1)];
-    pub(crate) const MOVEMENT_THRESHOLDS: [upgrade::Cost; 3] = [cost(0, 0), cost(3, 0), cost(6, 3)];
+    pub(crate) const WHEEL_COSTS: [upgrade::Cost; 3] = [cost(0, 0), cost(3, 0), cost(6, 1)];
+    pub(crate) const WHEEL_THRESHOLDS: [upgrade::Cost; 3] = [cost(0, 0), cost(3, 0), cost(6, 3)];
 
-    pub(crate) const RADAR_COST: upgrade::Cost = cost(2, 1);
-    pub(crate) const RADAR_THRESHOLD: upgrade::Cost = cost(2, 1);
+    pub(crate) const ANTENNA_COST: upgrade::Cost = cost(2, 1);
+    pub(crate) const ANTENNA_THRESHOLD: upgrade::Cost = cost(2, 1);
     pub(crate) const BATTERY_COST: upgrade::Cost = cost(1, 1);
     pub(crate) const BATTERY_THRESHOLD: upgrade::Cost = cost(1, 1);
 

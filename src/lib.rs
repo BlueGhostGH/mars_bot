@@ -23,26 +23,20 @@
 
 mod constants;
 
+mod game;
 mod io;
+
 mod map;
 mod opponents;
 
-mod position;
-
-use io::{
-    input::{
-        self,
-        player::{inventory, stats},
-    },
-    output::{self, action, upgrade},
-};
+use crate::io::{input, output};
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Bot
 {
     map: map::Map,
 
-    player: Player,
+    player: game::Player,
     opponents: opponents::Opponents,
 
     turn: usize,
@@ -58,23 +52,25 @@ impl Bot
         In: AsRef<str>,
     {
         let ref input @ input::Input {
-            dimensions: input::dimensions::Dimensions { width, .. },
-            map: input::map::Map { ref tiles },
+            dimensions: game::Dimensions { width, .. },
+            map: input::Map { ref tiles },
             player:
-                input::player::Player {
+                game::Player {
                     position,
                     stats,
                     inventory,
+                    ..
                 },
         } = input::try_parse(input.as_ref())?;
 
         self.map.update_acid(self.acid_level());
         self.map.update_with(input);
         self.opponents.update_with(tiles, width);
-        self.player = Player {
+        self.player = game::Player {
             position,
             stats,
             inventory,
+
             ..self.player
         };
 
@@ -87,7 +83,7 @@ impl Bot
             None => (None, self.player.position, None),
         };
 
-        self.player = Player {
+        self.player = game::Player {
             position: new_position,
             ..self.player
         };
@@ -96,10 +92,7 @@ impl Bot
             .map
             .find_neighbour(
                 self.player.position,
-                [
-                    map::tile::NonPlayerTile::Osmium,
-                    map::tile::NonPlayerTile::Iron,
-                ],
+                [game::NonPlayerTile::Osmium, game::NonPlayerTile::Iron],
             )
             .map(|map::Neighbour { direction, .. }| direction)
             .or(mine_direction)
@@ -107,16 +100,13 @@ impl Bot
                 self.map
                     .find_neighbour(
                         self.player.position,
-                        [
-                            map::tile::NonPlayerTile::Cobblestone,
-                            map::tile::NonPlayerTile::Stone,
-                        ],
+                        [game::NonPlayerTile::Cobblestone, game::NonPlayerTile::Stone],
                     )
                     .map(|map::Neighbour { direction, .. }| direction)
             });
 
         let action = if let Some(direction) = mine_direction {
-            Some(action::Action::Mine { direction })
+            Some(game::Action::Mine { direction })
         } else {
             None
         };
@@ -173,30 +163,28 @@ impl Bot
 
                     None
                 } else if self.player.position == entry
-                    && self.map.tile_at_is(center, map::tile::NonPlayerTile::Air)
+                    && self.map.tile_at_is(center, game::NonPlayerTile::Air)
                     && self.map.tile_at_is(
                         entry + center_direction.clockwise(),
-                        map::tile::NonPlayerTile::is_obstacle,
+                        game::NonPlayerTile::is_obstacle,
                     )
                     && self.map.tile_at_is(
                         entry + center_direction.counter_clockwise(),
-                        map::tile::NonPlayerTile::is_obstacle,
+                        game::NonPlayerTile::is_obstacle,
                     )
                 {
                     self.cage.step = 1;
 
                     Some(center)
                 } else if self.player.position == center
-                    && self
-                        .map
-                        .tile_at_is(third_spot, map::tile::NonPlayerTile::Air)
+                    && self.map.tile_at_is(third_spot, game::NonPlayerTile::Air)
                     && self.map.tile_at_is(
                         center + center_direction.clockwise(),
-                        map::tile::NonPlayerTile::Air,
+                        game::NonPlayerTile::Air,
                     )
                     && self.map.tile_at_is(
                         center + center_direction.counter_clockwise(),
-                        map::tile::NonPlayerTile::Air,
+                        game::NonPlayerTile::Air,
                     )
                 {
                     if self.cage.step == 1 {
@@ -211,11 +199,11 @@ impl Bot
                 } else if self.player.position == third_spot
                     && self.map.tile_at_is(
                         third_spot + center_direction.clockwise(),
-                        map::tile::NonPlayerTile::is_obstacle,
+                        game::NonPlayerTile::is_obstacle,
                     )
                     && self.map.tile_at_is(
                         third_spot + center_direction.counter_clockwise(),
-                        map::tile::NonPlayerTile::is_obstacle,
+                        game::NonPlayerTile::is_obstacle,
                     )
                 {
                     self.cage.step = 3;
@@ -234,25 +222,28 @@ impl Bot
 
             return self
                 .map
-                .find_path(self.player.position, next?, self.player.stats.whl_level);
+                .find_path(self.player.position, next?, self.player.stats.wheel_level);
         }
 
         if self.should_rtb() {
             return self.map.find_path(
                 self.player.position,
                 self.player.base,
-                self.player.stats.whl_level,
+                self.player.stats.wheel_level,
             );
         }
 
         let nearest = self
             .map
-            .nearest_tile(map::tile::NonPlayerTile::Osmium)
-            .or_else(|| self.map.nearest_tile(map::tile::NonPlayerTile::Iron))
-            .or_else(|| self.map.nearest_tile(map::tile::NonPlayerTile::Fog));
+            .nearest_tile(game::NonPlayerTile::Osmium)
+            .or_else(|| self.map.nearest_tile(game::NonPlayerTile::Iron))
+            .or_else(|| self.map.nearest_tile(game::NonPlayerTile::Fog));
 
-        self.map
-            .find_path(self.player.position, nearest?, self.player.stats.whl_level)
+        self.map.find_path(
+            self.player.position,
+            nearest?,
+            self.player.stats.wheel_level,
+        )
     }
 
     fn should_rtb(&self) -> bool
@@ -263,11 +254,11 @@ impl Bot
                 .is_some_and(|target| self.player.can_afford(target))
     }
 
-    fn try_upgrade(&mut self) -> Option<upgrade::Upgrade>
+    fn try_upgrade(&mut self) -> Option<game::Upgrade>
     {
         if self.can_upgrade() {
             match self.target_upgrade() {
-                Some(upgrade @ upgrade::Upgrade::Heal) => Some(upgrade),
+                Some(upgrade @ game::Upgrade::Heal) => Some(upgrade),
                 Some(upgrade) => {
                     self.upgrade_queue_index += 1;
 
@@ -288,10 +279,10 @@ impl Bot
                 .is_some_and(|target| self.player.can_afford(target))
     }
 
-    fn target_upgrade(&self) -> Option<output::upgrade::Upgrade>
+    fn target_upgrade(&self) -> Option<game::Upgrade>
     {
         if self.player.stats.hit_points <= 3 {
-            Some(upgrade::Upgrade::Heal)
+            Some(game::Upgrade::Heal)
         } else {
             constants::upgrade::QUEUE
                 .get(self.upgrade_queue_index)
@@ -346,56 +337,9 @@ impl From<input::Error> for Error
     }
 }
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
-struct Player
-{
-    position: position::Position,
-    stats: stats::Stats,
-    inventory: inventory::Inventory,
-
-    base: position::Position,
-}
-
-impl Player
-{
-    fn can_upgrade(&self) -> bool
-    {
-        self.position == self.base || self.stats.has_battery
-    }
-
-    fn can_afford(&self, upgrade: upgrade::Upgrade) -> bool
-    {
-        use upgrade::Upgrade as U;
-
-        let threshold = match upgrade {
-            U::Sight => constants::upgrade::SIGHT_THRESHOLDS
-                .get(self.stats.cmr_level as usize)
-                .copied(),
-            U::Attack => constants::upgrade::ATTACK_THRESHOLDS
-                .get(self.stats.gun_level as usize)
-                .copied(),
-            U::Drill => constants::upgrade::DRILL_THRESHOLDS
-                .get(self.stats.drl_level as usize)
-                .copied(),
-            U::Movement => constants::upgrade::MOVEMENT_THRESHOLDS
-                .get(self.stats.whl_level as usize)
-                .copied(),
-
-            U::Radar => Some(constants::upgrade::RADAR_THRESHOLD),
-            U::Battery => Some(constants::upgrade::BATTERY_THRESHOLD),
-
-            U::Heal => Some(constants::upgrade::HEAL_THRESHOLD),
-        };
-
-        threshold.is_some_and(|upgrade::Cost { iron, osmium }| {
-            self.inventory.iron >= iron && self.inventory.osmium >= osmium
-        })
-    }
-}
-
 mod caging
 {
-    use crate::{io::output, position};
+    use crate::game;
 
     #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
     pub(super) struct Cage
@@ -407,8 +351,8 @@ mod caging
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
     pub(super) struct Entryway
     {
-        pub(super) center_direction: output::direction::Direction,
-        pub(super) entry: position::Position,
+        pub(super) center_direction: game::Direction,
+        pub(super) entry: game::Position,
     }
 }
 
@@ -416,31 +360,32 @@ pub mod uninit
 {
     use std::collections;
 
-    use crate::{self as bot, caging, io::input, opponents};
+    use crate::{caging, game, io::input, map, opponents};
 
-    pub fn try_init<In>(input: In) -> ::core::result::Result<(bot::Bot, String), bot::Error>
+    pub fn try_init<In>(input: In) -> ::core::result::Result<(crate::Bot, String), crate::Error>
     where
         In: AsRef<str>,
     {
         let ref parsed_input @ input::Input {
             dimensions,
-            map: input::map::Map { ref tiles },
+            map: input::Map { ref tiles },
             player:
-                input::player::Player {
+                game::Player {
                     position,
                     stats,
                     inventory,
+                    ..
                 },
         } = input::try_parse(input.as_ref())?;
 
-        let entries = tiles.iter().copied().map(bot::map::Entry::init).collect();
-        let mut map = bot::map::Map {
+        let entries = tiles.iter().copied().map(map::Entry::init).collect();
+        let mut map = map::Map {
             dimensions,
             entries,
         };
         map.update_with(parsed_input);
 
-        let player = bot::Player {
+        let player = game::Player {
             position,
             stats,
             inventory,
@@ -458,7 +403,7 @@ pub mod uninit
             step: 0,
         };
 
-        let mut bot = bot::Bot {
+        let mut bot = crate::Bot {
             map,
             player,
             opponents,

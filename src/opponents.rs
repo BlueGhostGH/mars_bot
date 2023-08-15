@@ -1,6 +1,6 @@
 use std::collections;
 
-use crate::{map::tile, position};
+use crate::game;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub(super) struct Opponents
@@ -14,7 +14,7 @@ pub(super) type Id = u8;
 pub(crate) struct Opponent
 {
     pub(super) id: Id,
-    pub(super) position: position::Position,
+    pub(super) position: game::Position,
     pub(super) stats: Stats,
 
     pub(super) up_to_date: bool,
@@ -22,7 +22,7 @@ pub(crate) struct Opponent
 
 impl Opponent
 {
-    fn init_with_position(id: Id, position: position::Position) -> Self
+    fn init_with_position(id: Id, position: game::Position) -> Self
     {
         Opponent {
             id,
@@ -38,7 +38,7 @@ impl Opponent
         self.up_to_date = false;
     }
 
-    fn update(&mut self, position: position::Position)
+    fn update(&mut self, position: game::Position)
     {
         let wheel_level = if self.up_to_date {
             self.position.manhattan_distance(&position)
@@ -50,7 +50,7 @@ impl Opponent
             id: self.id,
             position,
             stats: Stats {
-                gun_level: self.stats.gun_level,
+                rifle_level: self.stats.rifle_level,
                 wheel_level,
             },
 
@@ -61,7 +61,7 @@ impl Opponent
 
 impl Opponents
 {
-    pub(super) fn update_with(&mut self, tiles: &[tile::Tile], stride: usize)
+    pub(super) fn update_with(&mut self, tiles: &[game::Tile], stride: usize)
     {
         self.outdate_opponents();
 
@@ -70,8 +70,8 @@ impl Opponents
             .copied()
             .enumerate()
             .filter_map(|(index, tile)| {
-                if let tile::Tile::Player { id } = tile {
-                    Some((position::Position::from_linear(index, stride), id))
+                if let game::Tile::Player { id } = tile {
+                    Some((game::Position::from_linear(index, stride), id))
                 } else {
                     None
                 }
@@ -94,7 +94,7 @@ impl Opponents
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(super) struct Stats
 {
-    pub(super) gun_level: u8,
+    pub(super) rifle_level: u8,
     pub(super) wheel_level: u8,
 }
 
@@ -103,7 +103,7 @@ impl Default for Stats
     fn default() -> Self
     {
         Stats {
-            gun_level: 1,
+            rifle_level: 1,
             wheel_level: 1,
         }
     }

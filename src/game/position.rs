@@ -1,4 +1,4 @@
-use crate::io::input::dimensions;
+use crate::game;
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub(crate) struct Position
@@ -9,7 +9,7 @@ pub(crate) struct Position
 
 impl Position
 {
-    pub(crate) fn is_within_bounds(self, dimensions: dimensions::Dimensions) -> bool
+    pub(crate) fn is_within_bounds(self, dimensions: game::Dimensions) -> bool
     {
         // NOTE: the casts are valid as we'd short-circuit
         // before them if our values were negative
@@ -47,4 +47,23 @@ impl Position
     //         None
     //     }
     // }
+}
+
+impl ::core::ops::Add<game::Direction> for Position
+{
+    type Output = Position;
+
+    fn add(self, direction: game::Direction) -> Self::Output
+    {
+        use game::Direction as D;
+
+        let Position { x, y } = self;
+
+        match direction {
+            D::Right => game::Position { x: x + 1, y },
+            D::Up => game::Position { x, y: y - 1 },
+            D::Left => game::Position { x: x - 1, y },
+            D::Down => game::Position { x, y: y + 1 },
+        }
+    }
 }
